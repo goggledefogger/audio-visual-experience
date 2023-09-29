@@ -35,7 +35,8 @@ def main():
                     running = False
 
         # Update and draw fractal
-        visual_engine.update()
+        brightness = visual_engine.draw_fractal()
+        visual_engine.update(brightness)
         visual_engine.draw_fractal()
 
         # Draw the button after the fractal
