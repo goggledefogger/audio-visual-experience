@@ -24,36 +24,43 @@ class AudioEngine:
         ]
         scale = scales[int(zoom_level * len(scales)) % len(scales)]
 
-        note_index = int(zoom_level * len(scale)) % len(scale)
+        # Choose a random starting note
+        note_index = np.random.choice(len(scale))
         base_note_name = scale[note_index]
 
+        # Randomly choose an octave
+        octave = np.random.choice(["3", "4", "5"])
+
         # Convert base note to frequency
-        base_frequency = pretty_midi.note_name_to_number(base_note_name + "4")
+        base_frequency = pretty_midi.note_name_to_number(base_note_name + octave)
         base_frequency = pretty_midi.note_number_to_hz(base_frequency)
 
-        # Rhythm based on zoom level
-        rhythm_factor = zoom_level % 0.5 + 0.5
+        # Define rhythmic patterns
+        rhythms = [0.25, 0.5, 0.125, 0.375, 0.75]  # Quarter, half, eighth, dotted-eighth, etc.
+        rhythm_factor = np.random.choice(rhythms)
         t = np.linspace(0, rhythm_factor, int(self.sample_rate * rhythm_factor), False)
 
-        # Harmonies
-        harmonies = [base_frequency]
-        if zoom_level % 3 < 1:  # Add a fifth
-            fifth_note = scale[(note_index + 4) % len(scale)]
-            fifth_frequency = pretty_midi.note_name_to_number(fifth_note + "4")
-            harmonies.append(pretty_midi.note_number_to_hz(fifth_frequency))
-        elif zoom_level % 3 < 2:  # Add a third
-            third_note = scale[(note_index + 2) % len(scale)]
-            third_frequency = pretty_midi.note_name_to_number(third_note + "4")
-            harmonies.append(pretty_midi.note_number_to_hz(third_frequency))
+        # Generate the tone
+        tone = np.sin(base_frequency * t * 2 * np.pi)
 
-        # Generate the tone with harmonies
-        tone = sum([np.sin(f * t * 2 * np.pi) for f in harmonies])
+        # Reduce amplitude to limit distortion
+        tone = 0.5 * tone
 
-        # Apply a simple envelope to the tone to avoid harsh starts/stops
+        # Apply an envelope to the tone to avoid harsh starts/stops
         envelope = np.ones_like(tone)
-        envelope[:50] = np.linspace(0, 1, 50)
-        envelope[-50:] = np.linspace(1, 0, 50)
+        envelope[:100] = np.linspace(0, 1, 100)
+        envelope[-100:] = np.linspace(1, 0, 100)
         tone_with_envelope = tone * envelope
+
+        # Add melodic patterns (arpeggios, leaps, and steps)
+        if np.random.rand() < 0.5:  # 50% chance to add a melodic pattern
+            step = np.random.choice([-2, -1, 1, 2])  # Choose a step size (up or down)
+            note_index = (note_index + step) % len(scale)  # Move to the next note in the scale
+            next_note_name = scale[note_index]
+            next_frequency = pretty_midi.note_name_to_number(next_note_name + octave)
+            next_frequency = pretty_midi.note_number_to_hz(next_frequency)
+            next_tone = np.sin(next_frequency * t * 2 * np.pi)
+            tone_with_envelope = np.concatenate([tone_with_envelope, next_tone])
 
         return tone_with_envelope
 
