@@ -1,0 +1,6 @@
+pygame
+mingus
+mido
+sounddevice
+numpy
+pretty_midi
