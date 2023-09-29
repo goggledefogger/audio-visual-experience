@@ -2,7 +2,6 @@ import pygame
 from visual_engine import VisualEngine
 from audio_engine import AudioEngine
 from ui_elements import Button
-import threading
 
 # Initialize pygame
 pygame.init()
@@ -10,32 +9,24 @@ pygame.init()
 # Constants
 WIDTH, HEIGHT = 800, 600
 
-def render_fractal(visual_engine):
-    while True:
-        visual_engine.draw_fractal()
-        visual_engine.update()
+# Colors
+WHITE = (255, 255, 255)
+
+# Screen setup
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Audio-Visual Experience')
 
 def main():
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Audio-Visual Art Experience")
+    clock = pygame.time.Clock()
+    running = True
 
-    # Initialize engines
     visual_engine = VisualEngine(screen)
     audio_engine = AudioEngine()
 
-    # UI elements
-    quit_button = Button(10, 10, 100, 40, "Quit")
+    # Button setup
+    quit_button = Button(WIDTH - 110, 10, 100, 40, "Quit", (255, 0, 0))
 
-    # Audio setup
-    channel = pygame.mixer.find_channel()
-
-    # Start a separate thread for fractal rendering
-    render_thread = threading.Thread(target=render_fractal, args=(visual_engine,))
-    render_thread.start()
-
-    running = True
     while running:
-        # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -43,14 +34,19 @@ def main():
                 if quit_button.is_over(pygame.mouse.get_pos()):
                     running = False
 
-        # Draw UI elements and update the display
-        quit_button.draw(visual_engine.screen)
-        pygame.display.flip()
+        # Update and draw fractal
+        visual_engine.update()
+        visual_engine.draw_fractal()
 
-        # Generate tone based on zoom factor
+        # Draw the button after the fractal
+        quit_button.draw(screen)
+
+        # Generate and play sound
         sound = audio_engine.generate_tone_with_envelope(visual_engine.zoom)
-        if not channel.get_busy():
-            channel.play(sound)
+        audio_engine.play_sound(sound)
+
+        pygame.display.flip()
+        clock.tick(30)
 
     pygame.quit()
 
