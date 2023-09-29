@@ -3,7 +3,7 @@ import numpy as np
 
 # Constants
 WIDTH, HEIGHT = 800, 600
-REDUCED_WIDTH, REDUCED_HEIGHT = WIDTH // 2, HEIGHT // 2  # Half the resolution
+REDUCED_WIDTH, REDUCED_HEIGHT = 256, 256  # Reduced resolution to 256x256
 
 class VisualEngine:
     def __init__(self, screen):
