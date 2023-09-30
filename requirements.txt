@@ -4,3 +4,4 @@ mido
 sounddevice
 numpy
 pretty_midi
+pygame_gui

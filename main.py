@@ -1,16 +1,19 @@
 import pygame
+import pygame_gui
 from visual_engine import VisualEngine
 from audio_engine import AudioEngine
 from ui_elements import Button
-
-# Initialize pygame
-pygame.init()
 
 # Constants
 WIDTH, HEIGHT = 800, 600
 
 # Colors
 WHITE = (255, 255, 255)
+
+
+# Initialize pygame
+pygame.init()
+manager = pygame_gui.UIManager((WIDTH, HEIGHT))  # Initialize UI Manager
 
 # Screen setup
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -20,34 +23,59 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
-    visual_engine = VisualEngine(screen)
+    # visual_engine = VisualEngine(screen)
+
+    # Initialize both fractals
+    fractalA = VisualEngine.FractalA(screen)
+    fractalB = VisualEngine.FractalB(screen)
+
+    # Set the current fractal
+    fractals = {"fractalA": fractalA, "fractalB": fractalB}
+    current_fractal = fractals['fractalA']  # Default to FractalA
+
     audio_engine = AudioEngine()
 
     # Button setup
     quit_button = Button(WIDTH - 110, 10, 100, 40, "Quit", (255, 0, 0))
 
+    # -- Dropdown Menu setup
+    fractal_options = ['fractalA', 'fractalB']
+    drop_down_menu = pygame_gui.elements.UIDropDownMenu(fractal_options, 'fractalA', pygame.Rect((10, 10), (150, 30)), manager)
+
     while running:
+        time_delta = clock.tick(30)/1000.0  # Add the time_delta
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            manager.process_events(event)
+
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                    current_fractal = fractals[drop_down_menu.selected_option]
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if quit_button.is_over(pygame.mouse.get_pos()):
                     running = False
 
+
         # Update and draw fractal
-        brightness = visual_engine.draw_fractal()
-        visual_engine.update(brightness)
-        visual_engine.draw_fractal()
+        current_fractal.update()
+        current_fractal.draw()
+
+        # Generate and play sound
+        zoom_value = getattr(current_fractal, 'zoom', 1)  # Use zoom if available, else default to 1
+        sound = audio_engine.generate_tone_with_envelope(zoom_value)
+        audio_engine.play_sound(sound)
 
         # Draw the button after the fractal
         quit_button.draw(screen)
 
-        # Generate and play sound
-        sound = audio_engine.generate_tone_with_envelope(visual_engine.zoom)
-        audio_engine.play_sound(sound)
+        # Update and draw the UI
+        manager.update(time_delta)
+        manager.draw_ui(screen)
 
         pygame.display.flip()
-        clock.tick(30)
 
     pygame.quit()
 
