@@ -7,6 +7,10 @@ WIDTH, HEIGHT = 800, 600
 REDUCED_WIDTH, REDUCED_HEIGHT = 256, 256
 
 class VisualEngine:
+    def valmorphanize(self):
+        """Default Valmorphanize effect. Can be overridden by subclasses."""
+        pass
+
     # Class for a Basic Fractal
     class FractalA:
         def __init__(self, screen):
@@ -386,6 +390,9 @@ class VisualEngine:
             self.pan_speed_x = random.choice([-1, 1]) * 0.5
             self.pan_speed_y = random.choice([-1, 1]) * 0.5
             self.bg_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(4)]
+            # Add a new attribute for valmorphanize effect duration
+            self.valmorphanize_duration = 0
+            self.original_speed_multiplier = 1
 
         def generate_palette(self):
             palette = []
@@ -451,3 +458,30 @@ class VisualEngine:
                 self.pan_speed_x *= -1
             if abs(self.pan_y) > HEIGHT * 0.2:
                 self.pan_speed_y *= -1
+
+            if self.valmorphanize_duration > 0:
+                self.valmorphanize_duration -= 1
+                if self.valmorphanize_duration == 0:
+                    self.speed_multiplier = self.original_speed_multiplier
+                    self.hex_size_multiplier = 1
+
+        def valmorphanize(self):
+            """Unique Valmorphanize effect for HexagonTessellation."""
+            # Reset any ongoing effects
+            self.speed_multiplier = self.original_speed_multiplier
+            self.valmorphanize_duration = 0
+
+            # Randomly choose a pronounced effect
+            effect_choice = random.choice(["speed_increase", "size_change"])
+
+            print(f"Valmorphanize effect chosen: {effect_choice}")  # Debug print
+
+            if effect_choice == "speed_increase":
+                # Drastically increase the speed of hexagons' movement
+                self.speed_multiplier = random.uniform(8, 12)  # More pronounced speed increase
+                self.valmorphanize_duration = random.randint(100, 150)  # Shorter duration for a burst effect
+
+            elif effect_choice == "size_change":
+                # Drastically change the size of the hexagons
+                self.hex_size_multiplier = random.uniform(2.5, 4)  # More pronounced size change
+                self.valmorphanize_duration = random.randint(80, 120)  # Shorter duration for a burst effect

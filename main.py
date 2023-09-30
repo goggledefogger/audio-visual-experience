@@ -7,6 +7,11 @@ from ui_elements import Button
 # Constants
 WIDTH, HEIGHT = 800, 600
 
+VALMORPHANIZE_BUTTON_WIDTH = 150
+VALMORPHANIZE_BUTTON_HEIGHT = 40
+VALMORPHANIZE_BUTTON_X = WIDTH - VALMORPHANIZE_BUTTON_WIDTH - 10
+VALMORPHANIZE_BUTTON_Y = 60
+
 # Colors
 WHITE = (255, 255, 255)
 
@@ -38,6 +43,7 @@ def main():
 
     # Button setup
     quit_button = Button(WIDTH - 110, 10, 100, 40, "Quit", (255, 0, 0))
+    valmorphanize_button = Button(VALMORPHANIZE_BUTTON_X, VALMORPHANIZE_BUTTON_Y, VALMORPHANIZE_BUTTON_WIDTH, VALMORPHANIZE_BUTTON_HEIGHT, "Valmorphanize", (0, 255, 0))
 
     while running:
         time_delta = clock.tick(30)/1000.0  # Add the time_delta
@@ -54,6 +60,8 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if quit_button.is_over(pygame.mouse.get_pos()):
                     running = False
+                if valmorphanize_button.is_over(pygame.mouse.get_pos()):
+                    current_fractal.valmorphanize()
 
 
         # Update and draw fractal
@@ -67,6 +75,7 @@ def main():
 
         # Draw the button after the fractal
         quit_button.draw(screen)
+        valmorphanize_button.draw(screen)
 
         # Update and draw the UI
         manager.update(time_delta)
