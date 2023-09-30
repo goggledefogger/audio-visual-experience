@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import random
+import colorsys
 
 # Constants
 WIDTH, HEIGHT = 800, 600
@@ -49,6 +50,13 @@ class VisualEngine:
             base_zoom_factor = 1.02  # Base zoom speed
             modulation = (brightness / 255) * 0.03  # Modulation based on brightness
             self.zoom *= base_zoom_factor + modulation
+
+        def valmorphanize(self):
+            # Change zoom, pan values with large differences
+            self.zoom = random.uniform(0.5, 2)
+            self.pan_x = random.uniform(-1, 1)
+            self.pan_y = random.uniform(-1, 1)
+
 
     # Class for another type of Fractal
 
@@ -108,6 +116,9 @@ class VisualEngine:
             # Gradually change the background color
             self.bg_color = ((self.bg_color[0] + 1) % 60, (self.bg_color[1] + 1) % 60, (self.bg_color[2] + 1) % 60)
 
+        def valmorphanize(self):
+            # Reset to fully randomize
+            self.reset_fractal()
 
     class FractalC:
         def __init__(self, screen):
@@ -174,8 +185,20 @@ class VisualEngine:
             if len(self.points) > 5000:  # Keep the last 5000 points for performance
                 self.points.pop(0)
 
+        def valmorphanize(self):
+            # Change the radius of the larger circle, R
+            self.R = random.uniform(100, 150)
+            # Change the radius of the smaller circle, r
+            self.r = random.uniform(50, 100)
+            # Change the l factor which affects the shape of the curve
+            self.l = random.uniform(0.5, 1.0)
+            # Generate a new random color
+            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            # Empty the list of drawn points
+            self.points.clear()
+            # Reset time parameter
+            self.t = 0
 
-                # ... [rest of the imports and initializations]
 
     class MultiSpirograph:
         def __init__(self, screen):
@@ -212,6 +235,17 @@ class VisualEngine:
                     spiro["points"].pop(0)
 
             self.t += 0.05
+
+        def valmorphanize(self):
+            for spiro in self.spirographs:
+                # Change base hue slightly and increase saturation to give a boosted feel
+                h, s, v = colorsys.rgb_to_hsv(*spiro["color"])
+                h = (h + random.uniform(-0.1, 0.1)) % 1.0  # slight change in hue
+                s = min(1, s + random.uniform(0.1, 0.3))  # increase saturation but don't exceed 1
+                spiro['color'] = colorsys.hsv_to_rgb(h, s, v)
+
+            # Boost the time change slightly (equivalent to speed) for more rapid transformations
+            self.t += (0.05 + random.uniform(0.05, 0.2)) # increase the change in time step to make the transitions faster
 
 
 
@@ -271,6 +305,20 @@ class VisualEngine:
                 self.current_step = 0  # Reset animation
                 self.speed_modulation_factor = 0  # Reset modulation factor
 
+        def valmorphanize(self):
+            # invert angle
+            self.angle *= -1
+            # randomize the speed modulation factor
+            self.speed_modulation_factor = random.uniform(7000, 15000)
+            # randomize color gradient
+            self.color_gradient = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for i in range(256)]
+            # Change length of each segment
+            self.length = random.randint(1, 10)
+            # Reset the commands
+            self.commands = self._generate_commands()
+            # Reset current step
+            self.current_step = 0
+
 
     class ColorfulSpirograph:
         def __init__(self, screen):
@@ -283,6 +331,9 @@ class VisualEngine:
             self.pulse_direction = 1
             self.bg_hue = random.randint(0, 360)
             self.time = 0
+            self.max_circle_size = 10
+            self.pulse_frequency = 20
+            self.thickness_factor = 1
 
         def draw_gradient_background(self):
             top_color = pygame.Color(0)
@@ -307,11 +358,12 @@ class VisualEngine:
                     hue_variation = int(30 * np.sin(self.time + i))
                     color.hsva = ((self.color_angle + hue_variation) % 360, 100, 100, 100)
 
-                    circle_size = int(5 * (1 - self.radii[i] / (max(WIDTH, HEIGHT) * 0.7)))
+                    circle_size = int(5 * self.thickness_factor * (1 - self.radii[i] / (max(WIDTH, HEIGHT) * 0.7)))
+            # Draw the circle
                     pygame.draw.circle(self.screen, color, (int(x), int(y)), circle_size)
 
                     self.angles[i] += self.speeds[i]
-                    self.radii[i] += 0.5 * np.sin(self.time)  # Dynamic radius change based on sine wave
+                    self.radii[i] += self.pulse_frequency * np.sin(self.time)  # Dynamic radius change based on sine wave
                     self.color_angle += 1
 
                     # Reset radii if they exceed a threshold
@@ -324,6 +376,18 @@ class VisualEngine:
 
         def update(self):
             pass  # No specific update logic for this fractal
+
+        def valmorphanize(self):
+            # Randomly choose to increase or decrease thickness
+            boost_or_reduce = random.choice([1.5, 0.7])  # < 1 to reduce, > 1 to boost
+
+            self.thickness_factor *= boost_or_reduce
+
+            # Add some constraints to keep thickness factor within reasonable limits
+            self.thickness_factor = max(min(self.thickness_factor, 2), 0.5)
+
+            # Keep radii within screen limits
+            self.radii = [min(radius, min(WIDTH, HEIGHT) / 3) for radius in self.radii]
 
 
     class PointillismPattern:
@@ -466,22 +530,19 @@ class VisualEngine:
                     self.hex_size_multiplier = 1
 
         def valmorphanize(self):
-            """Unique Valmorphanize effect for HexagonTessellation."""
-            # Reset any ongoing effects
-            self.speed_multiplier = self.original_speed_multiplier
-            self.valmorphanize_duration = 0
+            # Change the base hue and generate a new palette
+            self.base_hue = random.random()
+            self.palette = self.generate_palette()
 
-            # Randomly choose a pronounced effect
-            effect_choice = random.choice(["speed_increase", "size_change"])
+            # Invert and augment the angle for drastic change (0 for no rotation, 3.14 for inverted)
+            self.angle = 3.14 if random.random() > 0.5 else 0
 
-            print(f"Valmorphanize effect chosen: {effect_choice}")  # Debug print
+            # Change pan direction
+            self.pan_speed_x *= random.choice([-1, 1])
+            self.pan_speed_y *= random.choice([-1, 1])
 
-            if effect_choice == "speed_increase":
-                # Drastically increase the speed of hexagons' movement
-                self.speed_multiplier = random.uniform(8, 12)  # More pronounced speed increase
-                self.valmorphanize_duration = random.randint(100, 150)  # Shorter duration for a burst effect
+            # Change Time drastically
+            self.time = random.uniform(0, 10)
 
-            elif effect_choice == "size_change":
-                # Drastically change the size of the hexagons
-                self.hex_size_multiplier = random.uniform(2.5, 4)  # More pronounced size change
-                self.valmorphanize_duration = random.randint(80, 120)  # Shorter duration for a burst effect
+            # Change Zoom factor
+            self.zoom_factor = random.uniform(0.5, 1.5)
