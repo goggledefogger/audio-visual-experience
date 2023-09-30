@@ -266,3 +266,57 @@ class VisualEngine:
             if self.current_step > len(self.commands):
                 self.current_step = 0  # Reset animation
                 self.speed_modulation_factor = 0  # Reset modulation factor
+
+
+    class ColorfulSpirograph:
+        def __init__(self, screen):
+            self.screen = screen
+            self.max_circles = 5
+            self.angles = [random.uniform(0, 2 * np.pi) for _ in range(self.max_circles)]
+            self.radii = [random.randint(40, 90) for _ in range(self.max_circles)]
+            self.speeds = [random.uniform(0.02, 0.05) for _ in range(self.max_circles)]
+            self.color_angle = 0
+            self.pulse_direction = 1
+            self.bg_hue = random.randint(0, 360)
+            self.time = 0
+
+        def draw_gradient_background(self):
+            top_color = pygame.Color(0)
+            bottom_color = pygame.Color(0)
+            top_color.hsva = (self.bg_hue % 360, 70, 90, 100)
+            bottom_color.hsva = ((self.bg_hue + 180) % 360, 70, 50, 100)
+
+            for y in range(HEIGHT):
+                blend = y / HEIGHT
+                color = top_color.lerp(bottom_color, blend)
+                pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+
+        def draw(self):
+            self.draw_gradient_background()
+
+            for i in range(len(self.angles)):
+                for _ in range(10):  # Draw 10 circles in each frame for denser patterns
+                    x = WIDTH // 2 + self.radii[i] * np.cos(self.angles[i])
+                    y = HEIGHT // 2 + self.radii[i] * np.sin(self.angles[i])
+
+                    color = pygame.Color(0)
+                    hue_variation = int(30 * np.sin(self.time + i))
+                    color.hsva = ((self.color_angle + hue_variation) % 360, 100, 100, 100)
+
+                    circle_size = int(5 * (1 - self.radii[i] / (max(WIDTH, HEIGHT) * 0.7)))
+                    pygame.draw.circle(self.screen, color, (int(x), int(y)), circle_size)
+
+                    self.angles[i] += self.speeds[i]
+                    self.radii[i] += 0.5 * np.sin(self.time)  # Dynamic radius change based on sine wave
+                    self.color_angle += 1
+
+                    # Reset radii if they exceed a threshold
+                    if self.radii[i] > max(WIDTH, HEIGHT) * 0.7:
+                        self.radii[i] = random.randint(40, 90)
+                        self.speeds[i] = random.uniform(0.02, 0.05)
+
+            self.bg_hue += 0.5  # Slowly change the hue for the gradient background
+            self.time += 0.01  # Increment time for dynamic effects
+
+        def update(self):
+            pass  # No specific update logic for this fractal
