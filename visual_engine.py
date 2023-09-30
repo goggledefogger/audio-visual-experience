@@ -103,3 +103,166 @@ class VisualEngine:
             self.color = ((self.color[0] + 1) % 255, (self.color[1] + 2) % 255, (self.color[2] + 3) % 255)
             # Gradually change the background color
             self.bg_color = ((self.bg_color[0] + 1) % 60, (self.bg_color[1] + 1) % 60, (self.bg_color[2] + 1) % 60)
+
+
+    class FractalC:
+        def __init__(self, screen):
+            self.screen = screen
+            self.dt = 0.01
+            self.sigma = 10.0
+            self.beta = 8.0 / 3.0
+            self.rho = 28.0
+            self.x, self.y, self.z = 0.1, 0, 0
+            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            self.bg_color = (0, 0, 0)
+            self.points = []
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+            for point in self.points:
+                pygame.draw.circle(self.screen, self.color, (int(point[0]), int(point[1])), 1)
+
+        def update(self):
+            dx = self.sigma * (self.y - self.x) * self.dt
+            dy = (self.x * (self.rho - self.z) - self.y) * self.dt
+            dz = (self.x * self.y - self.beta * self.z) * self.dt
+
+            self.x += dx
+            self.y += dy
+            self.z += dz
+
+            # Scale and translate the points for visualization
+            px = int((self.x + 30) * (WIDTH / 60))
+            py = int((self.y + 30) * (HEIGHT / 60))
+
+            self.points.append((px, py))
+            if len(self.points) > 10000:  # Keep the last 10000 points for performance
+                self.points.pop(0)
+
+
+    class Spirograph:
+        def __init__(self, screen):
+            self.screen = screen
+            self.t = 0
+            self.R = 125
+            self.r = 75
+            self.l = 0.8
+            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            self.bg_color = (0, 0, 0)
+            self.points = []
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+            for point in self.points:
+                pygame.draw.circle(self.screen, self.color, (int(point[0]), int(point[1])), 1)
+
+        def update(self):
+            x = (self.R + self.r) * np.cos(self.t) - self.l * self.r * np.cos((self.R + self.r) * self.t / self.r)
+            y = (self.R + self.r) * np.sin(self.t) - self.l * self.r * np.sin((self.R + self.r) * self.t / self.r)
+
+            # Translate the points for visualization
+            px = int(x + WIDTH / 2)
+            py = int(y + HEIGHT / 2)
+
+            self.points.append((px, py))
+            self.t += 0.05
+
+            if len(self.points) > 5000:  # Keep the last 5000 points for performance
+                self.points.pop(0)
+
+
+                # ... [rest of the imports and initializations]
+
+    class MultiSpirograph:
+        def __init__(self, screen):
+            self.screen = screen
+            self.t = 0
+            self.bg_color = (0, 0, 0)
+            self.spirographs = [self._create_spirograph() for _ in range(3)]  # Create 3 spirographs
+
+        def _create_spirograph(self):
+            R = random.randint(50, 150)
+            r = random.randint(25, 125)
+            l = random.uniform(0.5, 1.0)
+            color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            return {"R": R, "r": r, "l": l, "color": color, "points": []}
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+            for spiro in self.spirographs:
+                for point in spiro["points"]:
+                    pygame.draw.circle(self.screen, spiro["color"], (int(point[0]), int(point[1])), 1)
+
+        def update(self):
+            for spiro in self.spirographs:
+                x = (spiro["R"] + spiro["r"]) * np.cos(self.t) - spiro["l"] * spiro["r"] * np.cos((spiro["R"] + spiro["r"]) * self.t / spiro["r"])
+                y = (spiro["R"] + spiro["r"]) * np.sin(self.t) - spiro["l"] * spiro["r"] * np.sin((spiro["R"] + spiro["r"]) * self.t / spiro["r"])
+
+                # Translate the points for visualization
+                px = int(x + WIDTH / 2)
+                py = int(y + HEIGHT / 2)
+
+                spiro["points"].append((px, py))
+
+                if len(spiro["points"]) > 5000:  # Keep the last 5000 points for performance
+                    spiro["points"].pop(0)
+
+            self.t += 0.05
+
+
+
+    class DragonCurve:
+        def __init__(self, screen):
+            self.screen = screen
+            self.iterations = 12  # Number of iterations
+            self.axiom = "FX"  # Initial state
+            self.rules = {
+                "X": "X+YF+",
+                "Y": "-FX-Y"
+            }
+            self.angle = 90  # 90 degrees
+            self.length = 5
+            self.commands = self._generate_commands()
+            self.current_step = 0  # Current step in the animation
+            self.color_gradient = [(255, i, 255 - i) for i in range(256)]
+            self.speed_modulation_factor = 10000
+
+        def _generate_commands(self):
+            result = self.axiom
+            for _ in range(self.iterations):
+                next_result = ""
+                for char in result:
+                    next_result += self.rules.get(char, char)
+                result = next_result
+            return result
+
+        def draw(self):
+            self.screen.fill((0, 0, 0))
+            x, y = WIDTH // 2, HEIGHT // 2
+            direction = 0  # Starting direction is right
+
+            for i, command in enumerate(self.commands):
+                if i > self.current_step:
+                    break
+                color = self.color_gradient[i % 256]
+                if command == "F":
+                    new_x = x + self.length * np.cos(direction)
+                    new_y = y + self.length * np.sin(direction)
+                    pygame.draw.line(self.screen, color, (x, y), (new_x, new_y))
+                    x, y = new_x, new_y
+                elif command == "+":
+                    direction += np.radians(self.angle)
+                elif command == "-":
+                    direction -= np.radians(self.angle)
+
+        def update(self):
+            # Create a seasonal speed modulation using multiple sine functions
+            seasonal_speed = np.sin(self.speed_modulation_factor) * np.sin(self.speed_modulation_factor * 0.1)
+            speed = 5 + 50 * seasonal_speed  # Oscillate between fast and average speeds
+
+            self.current_step += int(speed)
+            self.speed_modulation_factor += 0.05  # Adjust this for faster/slower oscillations
+
+            if self.current_step > len(self.commands):
+                self.current_step = 0  # Reset animation
+                self.speed_modulation_factor = 0  # Reset modulation factor

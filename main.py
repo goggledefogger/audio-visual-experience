@@ -23,24 +23,21 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
-    # visual_engine = VisualEngine(screen)
-
-    # Initialize both fractals
-    fractalA = VisualEngine.FractalA(screen)
-    fractalB = VisualEngine.FractalB(screen)
-
-    # Set the current fractal
-    fractals = {"fractalA": fractalA, "fractalB": fractalB}
-    current_fractal = fractals['fractalA']  # Default to FractalA
-
     audio_engine = AudioEngine()
+
+    # Dynamically fetch all fractal classes inside VisualEngine
+    fractal_classes = [cls for name, cls in VisualEngine.__dict__.items() if isinstance(cls, type)]
+    fractal_names = [cls.__name__ for cls in fractal_classes]
+
+    # Initialize all fractals
+    fractals = {name: cls(screen) for name, cls in zip(fractal_names, fractal_classes)}
+    current_fractal = fractals[fractal_names[0]]  # Default to the first fractal
+
+    # -- Dropdown Menu setup
+    drop_down_menu = pygame_gui.elements.UIDropDownMenu(fractal_names, fractal_names[0], pygame.Rect((10, 10), (150, 30)), manager)
 
     # Button setup
     quit_button = Button(WIDTH - 110, 10, 100, 40, "Quit", (255, 0, 0))
-
-    # -- Dropdown Menu setup
-    fractal_options = ['fractalA', 'fractalB']
-    drop_down_menu = pygame_gui.elements.UIDropDownMenu(fractal_options, 'fractalA', pygame.Rect((10, 10), (150, 30)), manager)
 
     while running:
         time_delta = clock.tick(30)/1000.0  # Add the time_delta
