@@ -152,6 +152,14 @@ class VisualEngine:
             if len(self.points) > 10000:  # Keep the last 10000 points for performance
                 self.points.pop(0)
 
+        def valmorphanize(self):
+            # change parameters
+            self.sigma = random.uniform(0, 50)
+            self.beta = random.uniform(0, 10)
+            self.rho = random.uniform(0, 50)
+            # change color
+            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+
 
     class Spirograph:
         def __init__(self, screen):
@@ -436,6 +444,15 @@ class VisualEngine:
             # Slowly change the background colors
             self.bg_color1.hsva = ((self.bg_color1.hsva[0] + 1) % 360, 100, 100, 100)
             self.bg_color2.hsva = ((self.bg_color2.hsva[0] - 1) % 360, 100, 100, 100)
+
+
+        def valmorphanize(self):
+            # Change maximum number of dots
+            self.max_dots = random.randint(100, 1000)
+
+            # Change background colors
+            self.bg_color1 = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+            self.bg_color2 = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 
     class HexagonTessellation:
