@@ -320,3 +320,134 @@ class VisualEngine:
 
         def update(self):
             pass  # No specific update logic for this fractal
+
+
+    class PointillismPattern:
+        def __init__(self, screen):
+            self.screen = screen
+            self.dots = []
+            self.max_dots = 500
+            self.time = 0
+            self.bg_color1 = pygame.Color(255, 255, 255)
+            self.bg_color2 = pygame.Color(200, 200, 255)
+
+        def draw(self):
+            # Dynamic gradient background
+            for y in range(HEIGHT):
+                blend = y / HEIGHT
+                color = self.bg_color1.lerp(self.bg_color2, blend)
+                pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+
+            # Adjust max_dots dynamically
+            self.max_dots = int(400 + 100 * np.sin(self.time))
+
+            # Add new dots
+            while len(self.dots) < self.max_dots:
+                x = random.randint(0, WIDTH)
+                y = random.randint(0, HEIGHT)
+                size = random.uniform(1, 3)
+                growth_rate = random.uniform(0.1, 0.3) * random.choice([1, -1])  # Increased growth rate
+                hue = (x + y + int(200 * np.sin(self.time))) % 360
+                color = pygame.Color(0)
+                color.hsva = (hue, 100, 100, random.randint(50, 100))  # Randomized opacity
+                dx = random.uniform(-1, 1)  # Increased movement speed
+                dy = random.uniform(-1, 1)  # Increased movement speed
+                self.dots.append([x, y, size, growth_rate, color, dx, dy])
+
+            # Draw and update dots
+            for dot in self.dots:
+                pygame.draw.circle(self.screen, dot[4], (dot[0], dot[1]), int(dot[2]))
+                dot[2] += dot[3]
+                dot[0] += dot[5]
+                dot[1] += dot[6]
+
+                if dot[2] > 20 or dot[2] < 1 or dot[0] < 0 or dot[0] > WIDTH or dot[1] < 0 or dot[1] > HEIGHT:
+                    self.dots.remove(dot)
+
+            self.time += 0.02  # Increased time increment
+
+        def update(self):
+            # Slowly change the background colors
+            self.bg_color1.hsva = ((self.bg_color1.hsva[0] + 1) % 360, 100, 100, 100)
+            self.bg_color2.hsva = ((self.bg_color2.hsva[0] - 1) % 360, 100, 100, 100)
+
+
+    class HexagonTessellation:
+        def __init__(self, screen):
+            self.screen = screen
+            self.time = 0
+            self.angle = 0
+            self.base_hue = random.random()  # Randomly choose a base hue
+            self.palette = self.generate_palette()
+            self.zoom_direction = 1  # 1 for zooming in, -1 for zooming out
+            self.zoom_factor = 1
+            self.pan_x = 0
+            self.pan_y = 0
+            self.pan_speed_x = random.choice([-1, 1]) * 0.5
+            self.pan_speed_y = random.choice([-1, 1]) * 0.5
+            self.bg_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(4)]
+
+        def generate_palette(self):
+            palette = []
+            for i in range(8):
+                hue = (self.base_hue + i/8) % 1  # Vary the hue around the base hue
+                color = pygame.Color(0)
+                color.hsla = (hue * 360, 100, 50, 100)  # Convert HSL to RGB
+                palette.append(color)
+            return palette
+
+        def lerp_color(self, color1, color2, alpha):
+            return tuple(int(a * (1 - alpha) + b * alpha) for a, b in zip(color1, color2))
+
+        def draw(self):
+            gradient = pygame.Surface((WIDTH, HEIGHT))
+            top_color = pygame.Color(50, 50, 50)
+            bottom_color = pygame.Color(20, 20, 20)
+            for y in range(HEIGHT):
+                alpha = y / HEIGHT
+                color = self.lerp_color(top_color, bottom_color, alpha)
+                pygame.draw.line(gradient, color, (0, y), (WIDTH, y))
+            self.screen.blit(gradient, (0, 0))
+
+            base_hex_size = 45
+            rows = int(HEIGHT // (1.5 * base_hex_size))
+            cols = int(WIDTH // (np.sqrt(3) * base_hex_size))
+            alpha = self.time % 1
+            for row in range(rows + 1):
+                for col in range(cols + 1):
+                    hex_size = base_hex_size + 15 * np.sin(2 * self.time + row + col)  # Faster size modulation
+                    x = col * np.sqrt(3) * base_hex_size * self.zoom_factor + self.pan_x
+                    y = row * 1.5 * base_hex_size * self.zoom_factor + self.pan_y
+                    if col % 2 == 1:
+                        y += 0.75 * base_hex_size * self.zoom_factor
+                    color_idx = (row + col) % 8
+                    next_color_idx = (color_idx + 1) % 8
+                    color = self.lerp_color(self.palette[color_idx], self.palette[next_color_idx], alpha)
+                    self.draw_hexagon(x, y, color, hex_size)
+
+        def draw_hexagon(self, x, y, color, hex_size):
+            hexagon = []
+            for i in range(6):
+                angle = 2 * np.pi / 6 * (i + self.angle)
+                xi = x + hex_size * np.cos(angle)
+                yi = y + hex_size * np.sin(angle)
+                hexagon.append((xi, yi))
+            pygame.draw.polygon(self.screen, color, hexagon)
+            pygame.draw.polygon(self.screen, (30, 30, 30), hexagon, 2)  # Border
+
+        def update(self):
+            self.angle += 0.01  # Faster rotation
+            self.time += 0.005  # Faster color transition
+
+            # Dynamic zooming
+            self.zoom_factor += 0.005 * self.zoom_direction
+            if self.zoom_factor > 1.2 or self.zoom_factor < 0.8:
+                self.zoom_direction *= -1
+
+            # Panning effect
+            self.pan_x += self.pan_speed_x
+            self.pan_y += self.pan_speed_y
+            if abs(self.pan_x) > WIDTH * 0.2:
+                self.pan_speed_x *= -1
+            if abs(self.pan_y) > HEIGHT * 0.2:
+                self.pan_speed_y *= -1
