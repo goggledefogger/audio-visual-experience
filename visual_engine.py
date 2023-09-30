@@ -50,12 +50,32 @@ class VisualEngine:
     class FractalB:
         def __init__(self, screen):
             self.screen = screen
-            # Rest of the initialization...
+            self.reset_fractal()
+
+        def reset_fractal(self):
+            self.vertices = [(WIDTH // 2, 50), (50, HEIGHT - 50), (WIDTH - 50, HEIGHT - 50)]
+            self.current_point = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            self.points_drawn = 0
 
         def draw(self):
-            self.screen.fill((100, 100, 100))  # Fill with a gray color for demonstration
+            for _ in range(1000):  # Draw 1000 points per frame for smoother animation
+                chosen_vertex = random.choice(self.vertices)
+                new_x = (self.current_point[0] + chosen_vertex[0]) // 2
+                new_y = (self.current_point[1] + chosen_vertex[1]) // 2
+                self.current_point = (new_x, new_y)
+                gradient_color = (
+                    (self.color[0] + new_x) % 255,
+                    (self.color[1] + new_y) % 255,
+                    (self.color[2] + new_x + new_y) % 255
+                )
+                self.screen.set_at(self.current_point, gradient_color)
+                self.points_drawn += 1
+                if self.points_drawn > 50000:  # Reset after 50,000 points
+                    self.reset_fractal()
 
         def update(self):
-            # Method to update FractalB...
-            pass
-
+            # Slightly move the vertices for dynamic effect
+            for i in range(3):
+                self.vertices[i] = (self.vertices[i][0] + random.randint(-1, 1),
+                                    self.vertices[i][1] + random.randint(-1, 1))
