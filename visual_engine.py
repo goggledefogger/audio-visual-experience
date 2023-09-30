@@ -97,8 +97,6 @@ class VisualEngine:
                 point_size = 1 + (new_x + new_y) % 3  # Vary point size between 1 and 3
                 pygame.draw.circle(self.screen, (*gradient_color, 150), self.current_point, point_size)
                 self.points_drawn += 1
-                if self.points_drawn >= 100000:  # Reset after 100,000 points
-                    self.reset_fractal()
 
         def update(self):
             # Move the vertices in a controlled manner
