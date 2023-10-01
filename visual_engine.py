@@ -243,59 +243,63 @@ class VisualEngine:
     class ColorfulSpirograph:
         def __init__(self, screen):
             self.screen = screen
-            self.max_circles = 5
+            self.width, self.height = screen.get_size()
+            self.max_circles = random.randint(3, 7)  # Variable number of circles
             self.angles = [random.uniform(0, 2 * np.pi) for _ in range(self.max_circles)]
-            self.radii = [random.randint(40, 90) for _ in range(self.max_circles)]
-            self.speeds = [random.uniform(0.02, 0.05) for _ in range(self.max_circles)]
+            self.radii = [random.randint(20, min(self.width, self.height) // 6) for _ in range(self.max_circles)]
+            self.speeds = [random.uniform(0.01, 0.04) for _ in range(self.max_circles)]
             self.color_angle = 0
-            self.pulse_direction = 1
             self.bg_hue = random.randint(0, 360)
             self.time = 0
-            self.max_circle_size = 10
-            self.pulse_frequency = 20
+            self.pulse_frequency = random.uniform(5, 20)
             self.thickness_factor = 1
+            self.pulse_direction = random.choice([-1, 1])
+            self.start_x = random.randint(self.width // 4, 3 * self.width // 4)  # Dynamic starting point
+            self.start_y = random.randint(self.height // 4, 3 * self.height // 4)  # Dynamic starting point
+            self.bg_pulse = 0
 
         def draw_gradient_background(self):
             top_color = pygame.Color(0)
             bottom_color = pygame.Color(0)
-            top_color.hsva = (self.bg_hue % 360, 70, 90, 100)
-            bottom_color.hsva = ((self.bg_hue + 180) % 360, 70, 50, 100)
+            top_color.hsva = ((self.bg_hue + int(10 * np.sin(self.bg_pulse))) % 360, 50, 85, 100)  # Background pulse
+            bottom_color.hsva = ((self.bg_hue + 180 + int(10 * np.sin(self.bg_pulse))) % 360, 50, 65, 100)  # Background pulse
 
-            for y in range(HEIGHT):
-                blend = y / HEIGHT
+            for y in range(self.height):
+                blend = y / self.height
                 color = top_color.lerp(bottom_color, blend)
-                pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+                pygame.draw.line(self.screen, color, (0, y), (self.width, y))
+
 
         def draw(self):
             self.draw_gradient_background()
 
             for i in range(len(self.angles)):
                 for _ in range(10):  # Draw 10 circles in each frame for denser patterns
-                    x = WIDTH // 2 + self.radii[i] * np.cos(self.angles[i])
-                    y = HEIGHT // 2 + self.radii[i] * np.sin(self.angles[i])
+                    x = self.start_x + self.radii[i] * np.cos(self.angles[i])
+                    y = self.start_y + self.radii[i] * np.sin(self.angles[i])
 
                     color = pygame.Color(0)
                     hue_variation = int(30 * np.sin(self.time + i))
-                    color.hsva = ((self.color_angle + hue_variation) % 360, 100, 100, 100)
+                    color.hsva = ((self.color_angle + hue_variation) % 360, 60, 80, 100)  # Reduced saturation and adjusted value for softer colors
 
-                    circle_size = int(5 * self.thickness_factor * (1 - self.radii[i] / (max(WIDTH, HEIGHT) * 0.7)))
-            # Draw the circle
+                    circle_size = int(3 * self.thickness_factor * (1 + np.sin(self.time)))  # Dynamic circle size based on sine wave
                     pygame.draw.circle(self.screen, color, (int(x), int(y)), circle_size)
 
                     self.angles[i] += self.speeds[i]
                     self.radii[i] += self.pulse_frequency * np.sin(self.time)  # Dynamic radius change based on sine wave
-                    self.color_angle += 1
 
-                    # Reset radii if they exceed a threshold
-                    if self.radii[i] > max(WIDTH, HEIGHT) * 0.7:
-                        self.radii[i] = random.randint(40, 90)
-                        self.speeds[i] = random.uniform(0.02, 0.05)
+                    # Reset radii if they exceed a threshold to keep them on screen
+                    if self.radii[i] > min(self.width, self.height) // 3:  # Adjusted threshold
+                        self.radii[i] = random.randint(20, min(self.width, self.height) // 6)
+                        self.speeds[i] = random.uniform(0.01, 0.04)
 
-            self.bg_hue += 0.5  # Slowly change the hue for the gradient background
-            self.time += 0.01  # Increment time for dynamic effects
+                self.bg_hue += 0.5  # Slowly change the hue for the gradient background
+                self.time += 0.01  # Increment time for dynamic effects
+
 
         def update(self):
-            pass  # No specific update logic for this fractal
+            self.bg_pulse += 0.01  # Increment for background pulse
+
 
         def valmorphanize(self):
             # Randomly choose to increase or decrease thickness
@@ -308,6 +312,27 @@ class VisualEngine:
 
             # Keep radii within screen limits
             self.radii = [min(radius, min(WIDTH, HEIGHT) / 3) for radius in self.radii]
+
+            # Occasionally add or remove circles for complexity
+            if random.random() < 0.1 and len(self.angles) < 7:
+                self.angles.append(random.uniform(0, 2 * np.pi))
+                self.radii.append(random.randint(40, 90))
+                self.speeds.append(random.uniform(0.02, 0.05))
+            elif random.random() < 0.1 and len(self.angles) > 3:
+                index_to_remove = random.randint(0, len(self.angles) - 1)
+                self.angles.pop(index_to_remove)
+                self.radii.pop(index_to_remove)
+                self.speeds.pop(index_to_remove)
+
+            # Randomize pulse direction
+            self.pulse_direction = random.choice([-1, 1])
+
+             # Randomize spirograph speeds
+            self.speeds = [random.uniform(0.01, 0.06) for _ in range(len(self.speeds))]
+
+            # Randomize starting positions
+            self.start_x = random.randint(self.width // 4, 3 * self.width // 4)
+            self.start_y = random.randint(self.height // 4, 3 * self.height // 4)
 
 
     class PointillismPattern:
@@ -785,14 +810,16 @@ class VisualEngine:
             self.color = (220, 220, 220)
             self.bg_color = (0, 0, 0)
             self.brush_x = 0
-            self.brush_speed = self.width / 600  # Adjusted for 10 seconds to traverse the screen width
+            self.brush_speed = self.width / 600
             self.horizon = int(self.height * 0.75)
             self.buildings = []
             self.clouds = [self.generate_cloud() for _ in range(5)]
+            self.stars = [(np.random.randint(0, self.width), np.random.randint(0, self.horizon)) for _ in range(100)]
             self.moon_x = np.random.randint(50, self.width - 50)
             self.moon_y = np.random.randint(50, int(self.height * 0.5))
             self.moon_speed = 0.5
             self.moon_phase = np.random.choice(['full', 'crescent', 'half', 'gibbous'])
+
 
 
         def generate_cloud(self):
@@ -823,13 +850,27 @@ class VisualEngine:
                 pygame.draw.circle(self.screen, color, (int(self.moon_x), int(self.moon_y)), 30)
                 pygame.draw.circle(self.screen, self.bg_color, (int(self.moon_x) - 10, int(self.moon_y)), 30)
 
+            for i in range(3):
+                pygame.draw.circle(self.screen, (255, 255, 200), (int(self.moon_x), int(self.moon_y)), 30 + i * 5, 1)
+
+
         def draw_cloud(self, circles):
             for x, y, radius in circles:
                 pygame.draw.circle(self.screen, (200, 200, 200), (int(x), int(y)), radius)
 
+            # Cloud shadow
+            for x, y, radius in circles:
+                pygame.draw.circle(self.screen, (150, 150, 150), (int(x), int(y + 5)), radius)
+
+        def draw_stars(self):
+            for x, y in self.stars:
+                pygame.draw.circle(self.screen, (255, 255, 255), (x, y), 1 if np.random.random() < 0.9 else 2)
+
+
         def draw(self):
             self.screen.fill(self.bg_color)
             self.draw_sky_gradient()
+            self.draw_stars()
             for cloud in self.clouds:
                 self.draw_cloud(cloud[0])
             self.draw_moon()
