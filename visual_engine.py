@@ -634,12 +634,12 @@ class VisualEngine:
 
             # Body of the bird
             pygame.draw.ellipse(self.screen, (200, 200, 200), (x, y, 60, 30))
-            
+
             # Wing of the bird
             wing_points = [(x+30, y), (x+60, y-20), (x, y-20)]
             wing_points_rotated = [(x + c*(px-x) - s*(py-y), y + s*(px-x) + c*(py-y)) for px, py in wing_points]
             pygame.draw.polygon(self.screen, (200, 200, 200), wing_points_rotated)
-            
+
             # Tail of the bird
             tail_points = [(x, y+15), (x-20, y+30), (x, y+30)]
             tail_points_rotated = [(x + c*(px-x) - s*(py-y), y + s*(px-x) + c*(py-y)) for px, py in tail_points]
@@ -805,7 +805,7 @@ class VisualEngine:
                 pygame.draw.line(self.screen, (25, 25, 25), (i, 0), (i, self.height))
             for i in range(0, self.height, 40):
                 pygame.draw.line(self.screen, (25, 25, 25), (0, i), (self.width, i))
-            
+
             if len(self.points) > 1:
                 pygame.draw.aalines(self.screen, self.color, False, self.points)
 
@@ -823,7 +823,7 @@ class VisualEngine:
             self.bg_color = (0, 0, 0)
             self.path = []
             self.current_index = 0
-            self.speed = 16
+            self.speed = 1
             self.buildings = []
             self.generate_city_skyline()
             self.valmorphanize_factor = 1.5
@@ -841,19 +841,19 @@ class VisualEngine:
                 x += building_width
 
         def draw_sky_gradient(self):
-            self.sky_alpha += 0.0005
+            self.sky_alpha += 0.0001  # Reduced speed
             for i in range(self.height):
                 alpha = i / self.height * self.sky_alpha
                 color = (int(alpha * 25), int(alpha * 25), int(alpha * 40))
                 pygame.draw.line(self.screen, color, (0, i), (self.width, i))
 
         def draw_moon_or_sun(self):
-            self.moon_alpha += 0.0005
+            self.moon_alpha += 0.0001  # Reduced speed
             color = (255, 255, 200)
             pygame.draw.circle(self.screen, color, (np.random.randint(50, self.width - 50), np.random.randint(50, int(self.height * 0.5))), np.random.randint(20, 50))
 
         def draw_stars(self):
-            self.stars_alpha += 0.0005
+            self.stars_alpha += 0.0001  # Reduced speed
             for _ in range(100):
                 x = np.random.randint(0, self.width)
                 y = np.random.randint(0, int(self.height * 0.7))
@@ -868,7 +868,8 @@ class VisualEngine:
             if len(self.path) > 1 and self.current_index > 1:
                 pygame.draw.lines(self.screen, self.color, False, self.path[:int(self.current_index)+1], 3)
             for building in self.buildings:
-                pygame.draw.rect(self.screen, (150, 150, 150), building)
+                pygame.draw.rect(self.screen, (50, 50, 50), building)  # Darker fill
+                pygame.draw.rect(self.screen, self.color, building, 2)  # Outline
             pygame.display.flip()
 
         def update(self):
