@@ -28,7 +28,18 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
+    # Dynamically fetch all audio mode classes inside AudioEngine
+    audio_mode_classes = [cls for name, cls in AudioEngine.__dict__.items() if isinstance(cls, type) and issubclass(cls, AudioEngine.BaseAudioMode) and cls is not AudioEngine.BaseAudioMode]
+    audio_mode_names = [cls.__name__ for cls in audio_mode_classes]
+
+    # Check if audio_mode_names is not empty
+    if not audio_mode_names:
+        raise ValueError("No audio modes found!")
+
+    # Instantiate AudioEngine
     audio_engine = AudioEngine()
+    default_mode = AudioEngine.DefaultAudioMode(audio_engine=audio_engine)
+
 
     # Dynamically fetch all fractal classes inside VisualEngine
     fractal_classes = [cls for name, cls in VisualEngine.__dict__.items() if isinstance(cls, type)]
@@ -40,6 +51,8 @@ def main():
 
     # -- Dropdown Menu setup
     drop_down_menu = pygame_gui.elements.UIDropDownMenu(fractal_names, fractal_names[0], pygame.Rect((10, 10), (150, 30)), manager)
+    audio_drop_down_menu = pygame_gui.elements.UIDropDownMenu(audio_mode_names, audio_mode_names[0], pygame.Rect((170, 10), (150, 30)), manager)
+
 
     # Button setup
     quit_button = Button(WIDTH - 110, HEIGHT - 60, 100, 40, "Quit", (255, 0, 0))
@@ -55,9 +68,16 @@ def main():
 
             manager.process_events(event)
 
-            if event.type == pygame.USEREVENT:
-                if event.user_type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
-                    current_fractal = fractals[drop_down_menu.selected_option]
+            if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                # Handle audio dropdown selection
+                if event.ui_element == audio_drop_down_menu:
+                    selected_audio_mode = event.text
+                    audio_engine.mode = audio_mode_classes[audio_mode_names.index(selected_audio_mode)](audio_engine=audio_engine)
+
+                # Handle visual dropdown selection
+                elif event.ui_element == drop_down_menu:
+                    selected_visual_mode = event.text
+                    current_fractal = fractals[selected_visual_mode]
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if quit_button.is_over(pygame.mouse.get_pos()):
