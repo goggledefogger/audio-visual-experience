@@ -122,11 +122,33 @@ class AudioEngine:
 
             return tone_with_envelope
 
-    # # Another example audio mode
-    # class AmbientAudioMode(BaseAudioMode):
-    #     def generate_sound(self, visual_data):
-    #         # ... [new audio generation code for ambient mode] ...
+    # Pulsating audio mode
+    class PulsatingAudioMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
 
+        def generate_sound(self, zoom_level):
+            """Generate a pulsating tone based on the zoom level."""
+            base_frequency = 440.0  # A4 as a base frequency
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Create a pulsating effect using a low-frequency sine wave as an amplitude modulator
+            modulator_frequency = 2.0 + 10.0 * zoom_level  # Increase pulsation speed with zoom level
+            modulator = 0.5 * (1.0 + np.sin(2 * np.pi * modulator_frequency * t))
+
+            # Generate the base tone
+            tone = np.sin(2 * np.pi * base_frequency * t)
+
+            # Apply the pulsating effect
+            pulsating_tone = tone * modulator
+
+            # Apply an envelope to the tone to avoid harsh starts/stops
+            envelope = np.ones_like(pulsating_tone)
+            envelope[:100] = np.linspace(0, 1, 100)
+            envelope[-100:] = np.linspace(1, 0, 100)
+            pulsating_tone_with_envelope = pulsating_tone * envelope
+
+            return pulsating_tone_with_envelope
 
     def __init__(self, sample_rate=44100, duration=0.1):
         self.sample_rate = sample_rate
