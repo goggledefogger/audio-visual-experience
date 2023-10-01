@@ -722,8 +722,6 @@ class VisualEngine:
             self.frequency = 0.1
             self.speed = 0.05
             self.color = self.get_color(self.offset)
-
-
     class EKGPattern:
         def __init__(self, screen):
             self.screen = screen
@@ -741,6 +739,11 @@ class VisualEngine:
             self.vertical_shift_speed = 2
             self.color_shift = 0
             self.grid_alpha = 255
+            self.line_width = 1
+            self.heartbeat_chance = 0.005
+            self.bg_pulse = 0
+            self.grid_size = 40
+            self.grid_color_shift = 0
 
         def update(self):
             self.x += self.speed
@@ -748,10 +751,7 @@ class VisualEngine:
                 self.x = 0
                 self.points.clear()
 
-            # Dynamic amplitude
             current_amplitude = self.base_amplitude + 10 * np.sin(0.01 * self.x)
-
-            # Enhanced EKG waveform logic with added complexity
             segment = len(self.points) % 250
             if segment < 60:
                 self.y_offset = 0
@@ -762,39 +762,49 @@ class VisualEngine:
             else:
                 self.y_offset = -current_amplitude * 0.5 * np.sin(self.frequency * 0.5 * self.x + np.pi/4)
 
-            # Vertical shift logic
             self.vertical_shift += self.vertical_shift_speed * self.vertical_shift_direction
             if abs(self.vertical_shift) > self.max_vertical_shift:
                 self.vertical_shift_direction *= -1
 
             y = self.height // 2 + self.y_offset + self.vertical_shift
+            noise = np.random.randint(-5, 5)
+            y += noise
+
+            if np.random.random() < self.heartbeat_chance:
+                self.y_offset += 3 * current_amplitude
+
+            self.line_width = 1 + int(2 * np.sin(0.01 * self.x))
             self.points.append((self.x, y))
 
         def draw(self):
-            # Dynamic background gradient
+            self.bg_pulse += 0.01
+            pulse_effect = 5 * np.sin(self.bg_pulse)
             for i in range(self.height):
                 alpha = i / self.height
-                color = (int(alpha * 10), int(alpha * 10), int(alpha * 15))
+                color = (int(alpha * (10 + pulse_effect)), int(alpha * (10 + pulse_effect)), int(alpha * (15 + pulse_effect)))
                 pygame.draw.line(self.screen, color, (0, i), (self.width, i))
 
-            # Dynamic grid fade in/out
-            self.grid_alpha += self.vertical_shift_direction * 5
-            self.grid_alpha = max(0, min(255, self.grid_alpha))
-            grid_color = (15, 15, 15, self.grid_alpha)
-
-            for i in range(0, self.width, 40):
+            self.grid_size = 40 + int(10 * np.sin(0.01 * self.x))
+            self.grid_color_shift += 0.01
+            grid_hue = (self.grid_color_shift) % 1
+            grid_color = pygame.Color(0)
+            grid_color.hsla = (grid_hue * 360, 50, 25)  # Set HSL values
+            grid_color.a = self.grid_alpha  # Set alpha value separately
+            for i in range(0, self.width, self.grid_size):
                 pygame.draw.line(self.screen, grid_color, (i, 0), (i, self.height))
-            for i in range(0, self.height, 40):
+            for i in range(0, self.height, self.grid_size):
                 pygame.draw.line(self.screen, grid_color, (0, i), (self.width, i))
 
-            # Color transition
             self.color_shift += 0.01
             hue = (self.color_shift) % 1
             color = pygame.Color(0)
-            color.hsla = (hue * 360, 100, 50, 100)
+            color.hsla = (hue * 360, 70, 50, 100)
 
             if len(self.points) > 1:
-                pygame.draw.aalines(self.screen, color, False, self.points)
+                for i in range(len(self.points) - 1):
+                    fade_alpha = int(255 * (i / len(self.points)))
+                    fade_color = (color.r, color.g, color.b, fade_alpha)
+                    pygame.draw.line(self.screen, fade_color, self.points[i], self.points[i + 1], self.line_width)
 
         def valmorphanize(self):
             self.speed = np.random.choice([3, 4, 5, 6, 7])
@@ -802,6 +812,7 @@ class VisualEngine:
             self.frequency *= np.random.choice([0.75, 1, 1.25, 1.5])
             self.vertical_shift_speed = np.random.choice([1, 2, 3])
             self.max_vertical_shift = np.random.choice([40, 50, 60, 70])
+
 
     class EtchASketch:
         def __init__(self, screen):
