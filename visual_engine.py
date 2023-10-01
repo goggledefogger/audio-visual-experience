@@ -505,30 +505,47 @@ class VisualEngine:
         def valmorphanize(self):
             self.speed_boost = 5  # Increase speed for a short burst
 
-
     class WavePattern:
         def __init__(self, screen):
             self.screen = screen
             self.time = 0
             self.inverted = 1  # 1 for normal wave, -1 for inverted wave
             self.frequency_shift = 1
+            self.color_shift = 0
 
         def draw(self):
-            self.screen.fill((0, 0, 0))
+            # Background gradient
+            start_color = (50, 50, 150)
+            end_color = (150, 50, 50)
+            for i in range(HEIGHT):
+                alpha = i / HEIGHT
+                color = (
+                    int((1 - alpha) * start_color[0] + alpha * end_color[0]),
+                    int((1 - alpha) * start_color[1] + alpha * end_color[1]),
+                    int((1 - alpha) * start_color[2] + alpha * end_color[2])
+                )
+                pygame.draw.line(self.screen, color, (0, i), (WIDTH, i))
+
             for x in range(0, WIDTH, 10):
-                y1 = int(HEIGHT / 2 + self.inverted * 100 * math.sin(self.frequency_shift * x / 50 + self.time))
-                y2 = int(HEIGHT / 2 + self.inverted * 80 * math.sin(self.frequency_shift * x / 30 + 2 * self.time))
-                y3 = int(HEIGHT / 2 + self.inverted * 60 * math.sin(self.frequency_shift * x / 20 + 3 * self.time))
-                pygame.draw.circle(self.screen, (0, 255, 255), (x, y1), 5)
-                pygame.draw.circle(self.screen, (255, 0, 255), (x, y2), 5)
-                pygame.draw.circle(self.screen, (255, 255, 0), (x, y3), 5)
+                amplitude = 100 + 30 * math.sin(self.time / 2)
+                y1 = int(HEIGHT / 2 + self.inverted * amplitude * math.sin(self.frequency_shift * x / 50 + self.time))
+                y2 = int(HEIGHT / 2 + self.inverted * (amplitude - 20) * math.sin(self.frequency_shift * x / 30 + 2 * self.time + 1))
+                y3 = int(HEIGHT / 2 + self.inverted * (amplitude - 40) * math.sin(self.frequency_shift * x / 20 + 3 * self.time + 2))
+
+                color1 = (int(255 * (math.sin(self.color_shift) + 1) / 2), 255, 255)
+                color2 = (255, int(255 * (math.sin(self.color_shift + 2) + 1) / 2), 255)
+                color3 = (255, 255, int(255 * (math.sin(self.color_shift + 4) + 1) / 2))
+
+                pygame.draw.circle(self.screen, color1, (x, y1), 5 + 2 * math.sin(x / 50 + self.time))
+                pygame.draw.circle(self.screen, color2, (x, y2), 5 + 2 * math.sin(x / 30 + 2 * self.time))
+                pygame.draw.circle(self.screen, color3, (x, y3), 5 + 2 * math.sin(x / 20 + 3 * self.time))
 
         def update(self):
             self.time += 0.1
+            self.color_shift += 0.05
 
         def valmorphanize(self):
             self.frequency_shift = random.uniform(0.5, 1.5)  # Random frequency shift
-
 
     class RotatingSpiral:
         def __init__(self, screen):
@@ -584,35 +601,48 @@ class VisualEngine:
             self.direction *= -1  # Reverse the rotation direction
             self.speed *= 2  # Double the rotation speed
 
-
-
     class BouncingBalls:
         def __init__(self, screen):
             self.screen = screen
-            self.balls = [(random.randint(50, WIDTH - 50), random.randint(50, HEIGHT - 50), random.randint(1, 5), random.randint(1, 5), random.randint(10, 30), (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) for _ in range(20)]
+            self.balls = [(random.randint(50, WIDTH - 50), random.randint(50, HEIGHT - 50), random.uniform(-4, 4), random.uniform(-4, 4), random.randint(10, 30), (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), 1, random.choice([-1, 1])) for _ in range(20)]
 
         def draw(self):
             self.screen.fill((0, 0, 0))
-            for x, y, dx, dy, radius, color in self.balls:
+            for x, y, _, _, radius, color, _, _ in self.balls:
                 pygame.draw.circle(self.screen, color, (x, y), radius)
                 pygame.draw.circle(self.screen, (0, 0, 0), (x, y), radius - 2)
 
         def update(self):
             new_balls = []
-            for x, y, dx, dy, radius, color in self.balls:
+            for x, y, dx, dy, radius, color, size_oscillation, direction in self.balls:
                 x += dx
                 y += dy
                 if x - radius <= 0 or x + radius >= WIDTH:
                     dx = -dx
+                    color = tuple(min(255, c + 10) for c in color)
                 if y - radius <= 0 or y + radius >= HEIGHT:
                     dy = -dy
-                radius = max(10, min(30, radius + random.randint(-1, 1)))
-                new_balls.append((x, y, dx, dy, radius, color))
+                    color = tuple(min(255, c + 10) for c in color)
+
+                # Oscillate the size of the ball with reduced magnitude and centered around the original size
+                size_oscillation += 0.02 * direction
+                if size_oscillation > 1.2 or size_oscillation < 0.8:
+                    direction *= -1
+
+                new_radius = max(10, int(radius * size_oscillation))
+
+                # Smooth color transition
+                r, g, b = color
+                r = (r + random.randint(-2, 2)) % 256
+                g = (g + random.randint(-2, 2)) % 256
+                b = (b + random.randint(-2, 2)) % 256
+                color = (r, g, b)
+
+                new_balls.append((x, y, dx, dy, new_radius, color, size_oscillation, direction))
             self.balls = new_balls
 
         def valmorphanize(self):
-            self.balls = [(x, y, random.randint(-5, 5), random.randint(-5, 5), radius, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) for x, y, _, _, radius, _ in self.balls]
-
+            self.balls = [(x, y, random.uniform(-5, 5), random.uniform(-5, 5), random.randint(8, 32), (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), size_oscillation, direction) for x, y, _, _, _, _, size_oscillation, direction in self.balls]
 
     class ZigZagPattern:
         def __init__(self, screen):
@@ -684,6 +714,8 @@ class VisualEngine:
             self.max_vertical_shift = 50
             self.vertical_shift_direction = 1
             self.vertical_shift_speed = 2
+            self.color_shift = 0
+            self.grid_alpha = 255
 
         def update(self):
             self.x += self.speed
@@ -691,17 +723,19 @@ class VisualEngine:
                 self.x = 0
                 self.points.clear()
 
-            # EKG waveform logic
-            segment = len(self.points) % 150
-            current_amplitude = self.base_amplitude + np.random.randint(-10, 10)
-            if segment < 30:
+            # Dynamic amplitude
+            current_amplitude = self.base_amplitude + 10 * np.sin(0.01 * self.x)
+
+            # Enhanced EKG waveform logic with added complexity
+            segment = len(self.points) % 250
+            if segment < 60:
                 self.y_offset = 0
-            elif segment < 60:
+            elif segment < 120:
                 self.y_offset = current_amplitude * np.sin(self.frequency * self.x)
-            elif segment < 90:
+            elif segment < 180:
                 self.y_offset = 0
             else:
-                self.y_offset = -current_amplitude * 0.5 * np.sin(self.frequency * 0.5 * self.x)
+                self.y_offset = -current_amplitude * 0.5 * np.sin(self.frequency * 0.5 * self.x + np.pi/4)
 
             # Vertical shift logic
             self.vertical_shift += self.vertical_shift_speed * self.vertical_shift_direction
@@ -712,20 +746,37 @@ class VisualEngine:
             self.points.append((self.x, y))
 
         def draw(self):
-            self.screen.fill((0, 0, 0))
-            # Draw background grid
+            # Dynamic background gradient
+            for i in range(self.height):
+                alpha = i / self.height
+                color = (int(alpha * 10), int(alpha * 10), int(alpha * 15))
+                pygame.draw.line(self.screen, color, (0, i), (self.width, i))
+
+            # Dynamic grid fade in/out
+            self.grid_alpha += self.vertical_shift_direction * 5
+            self.grid_alpha = max(0, min(255, self.grid_alpha))
+            grid_color = (15, 15, 15, self.grid_alpha)
+
             for i in range(0, self.width, 40):
-                pygame.draw.line(self.screen, (25, 25, 25), (i, 0), (i, self.height))
+                pygame.draw.line(self.screen, grid_color, (i, 0), (i, self.height))
             for i in range(0, self.height, 40):
-                pygame.draw.line(self.screen, (25, 25, 25), (0, i), (self.width, i))
+                pygame.draw.line(self.screen, grid_color, (0, i), (self.width, i))
+
+            # Color transition
+            self.color_shift += 0.01
+            hue = (self.color_shift) % 1
+            color = pygame.Color(0)
+            color.hsla = (hue * 360, 100, 50, 100)
 
             if len(self.points) > 1:
-                pygame.draw.aalines(self.screen, self.color, False, self.points)
+                pygame.draw.aalines(self.screen, color, False, self.points)
 
         def valmorphanize(self):
-            self.speed = np.random.choice([3, 5, 7])
-            self.base_amplitude = np.random.choice([40, 50, 60])
-            self.frequency *= np.random.choice([1.25, 1.5])
+            self.speed = np.random.choice([3, 4, 5, 6, 7])
+            self.base_amplitude = np.random.choice([30, 40, 50, 60, 70])
+            self.frequency *= np.random.choice([0.75, 1, 1.25, 1.5])
+            self.vertical_shift_speed = np.random.choice([1, 2, 3])
+            self.max_vertical_shift = np.random.choice([40, 50, 60, 70])
 
 
     class EtchASketch:
