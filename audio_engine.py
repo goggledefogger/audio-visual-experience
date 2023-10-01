@@ -128,17 +128,9 @@ class AudioEngine:
             tone_with_envelope = tone * envelope
 
             return tone_with_envelope
-
-    # Pulsating audio mode
     class PulsatingAudioMode(BaseAudioMode):
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
-            self.scales = [
-                ["C", "D", "Eb", "F", "G", "Ab", "Bb"],  # Natural Minor
-                ["C", "Db", "Eb", "E", "Gb", "Ab", "Bb"],  # Phrygian
-                ["C", "D", "E", "F#", "G", "A", "B"],  # Lydian
-            ]
-            self.scale = self.scales[0]  # Default to Minor scale
 
         def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
             """Generate an enhanced pulsating tone based on various visualization factors."""
@@ -155,22 +147,12 @@ class AudioEngine:
 
             # Base tone with harmonic overtones influenced by pattern density
             tone = np.sin(2 * np.pi * base_frequency * t)
-            harmonic1 = pattern_density * np.sin(2 * np.pi * 2 * base_frequency * t)
-            harmonic2 = (1 - pattern_density) * np.sin(2 * np.pi * 3 * base_frequency * t)
+            harmonic1 = 0.5 * pattern_density * np.sin(2 * np.pi * 2 * base_frequency * t)
+            harmonic2 = 0.3 * (1 - pattern_density) * np.sin(2 * np.pi * 3 * base_frequency * t)
             combined_tone = tone + harmonic1 + harmonic2
 
             # Apply the pulsating effect
             pulsating_tone = combined_tone * modulator
-
-            # Random melodic patterns influenced by rotation angle
-            if np.random.rand() < 0.3 + 0.2 * (rotation_angle / 360):  # Increase chance with rotation
-                step = np.random.choice([-2, -1, 1, 2])
-                note_index = (self.scale.index(self.base_note_name) + step) % len(self.scale)
-                next_note_name = self.scale[note_index]  # Corrected line
-                next_frequency = pretty_midi.note_name_to_number(next_note_name + "4")
-                next_frequency = pretty_midi.note_number_to_hz(next_frequency)
-                next_tone = np.sin(next_frequency * t * 2 * np.pi)
-                pulsating_tone = np.concatenate([pulsating_tone, next_tone])
 
             # Dynamic rhythmic patterns based on color intensity
             if color_intensity > 0.7:  # Introduce rhythmic breaks for high color intensities
@@ -184,6 +166,56 @@ class AudioEngine:
             pulsating_tone_with_envelope = pulsating_tone * envelope
 
             return pulsating_tone_with_envelope
+
+    class AmbientNeuroMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate an ambient neuro-inspired tone based on visualization factors."""
+
+            t = np.linspace(0, self.audio_engine.duration + 1.5, int(self.audio_engine.sample_rate * (self.audio_engine.duration + 1.5)), False)
+
+            # Base frequency influenced by zoom level and rotation angle
+            base_frequency = 110.0 + 55.0 * zoom_level + rotation_angle
+
+            # Binaural beat effect
+            binaural_offset = 5.0  # 5 Hz binaural beat for relaxation
+            left_ear_tone = np.sin(2 * np.pi * base_frequency * t)
+            right_ear_tone = np.sin(2 * np.pi * (base_frequency + binaural_offset) * t)
+            binaural_tone = (left_ear_tone + right_ear_tone) / 2.0
+
+            # Ambient chord texture
+            sus2_harmonic = np.sin(2 * np.pi * 2 * base_frequency * t)
+            sus4_harmonic = np.sin(2 * np.pi * 4/3 * base_frequency * t)
+            chord_texture = 0.5 * sus2_harmonic + 0.5 * sus4_harmonic
+
+            # Random ambient textures
+            random_texture = np.interp(t, np.linspace(0, self.audio_engine.duration, 10), np.random.uniform(-1, 1, 10))
+            random_texture = random_texture * (0.1 + 0.2 * color_intensity)
+
+            # Combine all elements
+            combined_tone = binaural_tone + chord_texture + random_texture
+
+            # Apply a slow attack and release envelope
+            envelope = np.ones_like(combined_tone)
+            envelope[:100] = np.linspace(0, 1, 100)
+            envelope[-100:] = np.linspace(1, 0, 100)
+            combined_tone_with_envelope = combined_tone * envelope
+
+            # envelope = np.ones(int(self.audio_engine.sample_rate * self.audio_engine.duration))
+            # attack_duration = int(0.5 * self.audio_engine.sample_rate)  # 0.5 seconds
+            # release_duration = int(1 * self.audio_engine.sample_rate)  # 1 second
+            # envelope[:attack_duration] = np.linspace(0, 1, attack_duration)
+            # envelope[-release_duration:] = np.linspace(1, 0, release_duration)
+            # ambient_neuro_tone = combined_tone * envelope
+
+            # return ambient_neuro_tone
+            # return combined_tone
+
+            return combined_tone_with_envelope
+
+
     def __init__(self, sample_rate=44100, duration=0.1):
         self.sample_rate = sample_rate
         self.duration = duration
@@ -206,7 +238,6 @@ class AudioEngine:
         chord_frequencies = [base_frequency * (2 ** (i / 12)) for i in chord_indices]
         return [freq * octave_multiplier for freq in chord_frequencies]
 
-
     def generate_melodic_pattern(self, octave_multiplier, length=4):
         # Start from base note
         start_index = self.mode.scale.index(self.mode.base_note_name)
@@ -216,7 +247,6 @@ class AudioEngine:
         pattern_frequencies = [pretty_midi.note_name_to_number(self.mode.scale[i] + str(octave_multiplier)) for i in pattern_indices]
         pattern_frequencies = [pretty_midi.note_number_to_hz(freq) for freq in pattern_frequencies]
         return pattern_frequencies
-
 
     def play_sound(self, sound_array):
         if self.muted:
