@@ -881,3 +881,96 @@ class VisualEngine:
 
         def valmorphanize(self):
             self.valmorphanize_factor = np.random.choice([0.5, 1.5, 2.5])
+
+    class ArtisticCitySkyline:
+        def __init__(self, screen):
+            self.screen = screen
+            self.width, self.height = screen.get_size()
+            self.color = (220, 220, 220)
+            self.bg_color = (0, 0, 0)
+            self.buildings = []
+            self.generate_city_skyline()
+
+        def generate_city_skyline(self):
+            horizon = int(self.height * 0.75)
+            x = 0
+            while x < self.width:
+                building_width = np.random.randint(30, 100)
+                building_height = np.random.randint(50, self.height - horizon)
+                curve_height = np.random.randint(10, 30)
+                self.buildings.append((x, horizon, building_width, building_height, curve_height))
+                x += building_width
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+
+            # Draw buildings
+            for building in self.buildings:
+                x, horizon, width, height, curve_height = building
+                pygame.draw.rect(self.screen, self.color, (x, horizon - height, width, height))
+                pygame.draw.arc(self.screen, self.bg_color, (x, horizon - height - curve_height, width, curve_height*2), 0, np.pi, width//2)
+
+                # Draw randomized windows
+                for _ in range(np.random.randint(5, 20)):
+                    wx = x + np.random.randint(0, width - 5)
+                    wy = horizon - np.random.randint(0, height - 5)
+                    pygame.draw.rect(self.screen, (255, 255, 255), (wx, wy, 5, 5))
+
+            # Draw moon
+            pygame.draw.circle(self.screen, (255, 255, 200), (np.random.randint(50, self.width - 50), np.random.randint(50, int(self.height * 0.5))), np.random.randint(20, 50))
+
+            # Draw stars
+            for _ in range(100):
+                x = np.random.randint(0, self.width)
+                y = np.random.randint(0, int(self.height * 0.7))
+                pygame.draw.circle(self.screen, (255, 255, 255), (x, y), 1)
+
+            pygame.display.flip()
+
+        def update(self):
+            pass
+
+    class LissajousCurve:
+        def __init__(self, screen):
+            self.screen = screen
+            self.width, self.height = screen.get_size()
+            self.num_lines = 3
+            self.paths = [[] for _ in range(self.num_lines)]
+            self.current_indices = [0 for _ in range(self.num_lines)]
+            self.speeds = [0.01 for _ in range(self.num_lines)]
+            self.as_values = [3, 4, 5]
+            self.bs_values = [2, 3, 4]
+            self.deltas = [np.pi / 2, np.pi / 3, np.pi / 4]
+            self.zoom = 1.0
+            self.line_thickness = 5
+            self.colors = [(220, 220, 220), (220, 150, 150), (150, 220, 150)]
+            self.bg_color = (0, 0, 0)
+            self.fade_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            self.fade_surface.fill((0, 0, 0, 10))
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+            for i in range(self.num_lines):
+                if len(self.paths[i]) > 1:
+                    pygame.draw.lines(self.screen, self.colors[i], False, self.paths[i], self.line_thickness)
+            self.screen.blit(self.fade_surface, (0, 0))
+            pygame.display.flip()
+
+        def update(self):
+            for i in range(self.num_lines):
+                t = self.current_indices[i]
+                x = int(self.width / 2 + self.zoom * self.width / 4 * np.sin(self.as_values[i] * t + self.deltas[i]))
+                y = int(self.height / 2 + self.zoom * self.height / 4 * np.sin(self.bs_values[i] * t))
+                self.paths[i].append((x, y))
+                self.current_indices[i] += self.speeds[i]
+                if len(self.paths[i]) > 500:
+                    self.paths[i].pop(0)
+
+        def valmorphanize(self):
+            for i in range(self.num_lines):
+                self.as_values[i] += np.random.choice([-1, 1])
+                self.bs_values[i] += np.random.choice([-1, 1])
+                self.deltas[i] += np.random.uniform(-0.1, 0.1)
+                self.speeds[i] = np.random.uniform(0.005, 0.02)
+                self.colors[i] = (np.random.randint(150, 255), np.random.randint(150, 255), np.random.randint(150, 255))
+            self.bg_color = (np.random.randint(0, 50), np.random.randint(0, 50), np.random.randint(0, 50))
