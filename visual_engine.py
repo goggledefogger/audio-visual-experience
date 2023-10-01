@@ -15,7 +15,7 @@ class VisualEngine:
         pass
 
     # Class for a Basic Fractal
-    class FractalA:
+    class MandleBrot:
         def __init__(self, screen):
             self.screen = screen
             self.zoom = random.uniform(0.8, 1.2)
@@ -62,7 +62,7 @@ class VisualEngine:
 
     # Class for another type of Fractal
 
-    class FractalB:
+    class Triforce:
         def __init__(self, screen):
             self.screen = screen
             self.reset_fractal()
@@ -119,49 +119,6 @@ class VisualEngine:
         def valmorphanize(self):
             # Reset to fully randomize
             self.reset_fractal()
-
-    class FractalC:
-        def __init__(self, screen):
-            self.screen = screen
-            self.dt = 0.01
-            self.sigma = 10.0
-            self.beta = 8.0 / 3.0
-            self.rho = 28.0
-            self.x, self.y, self.z = 0.1, 0, 0
-            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-            self.bg_color = (0, 0, 0)
-            self.points = []
-
-        def draw(self):
-            self.screen.fill(self.bg_color)
-            for point in self.points:
-                pygame.draw.circle(self.screen, self.color, (int(point[0]), int(point[1])), 1)
-
-        def update(self):
-            dx = self.sigma * (self.y - self.x) * self.dt
-            dy = (self.x * (self.rho - self.z) - self.y) * self.dt
-            dz = (self.x * self.y - self.beta * self.z) * self.dt
-
-            self.x += dx
-            self.y += dy
-            self.z += dz
-
-            # Scale and translate the points for visualization
-            px = int((self.x + 30) * (WIDTH / 60))
-            py = int((self.y + 30) * (HEIGHT / 60))
-
-            self.points.append((px, py))
-            if len(self.points) > 10000:  # Keep the last 10000 points for performance
-                self.points.pop(0)
-
-        def valmorphanize(self):
-            # change parameters
-            self.sigma = random.uniform(0, 50)
-            self.beta = random.uniform(0, 10)
-            self.rho = random.uniform(0, 50)
-            # change color
-            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-
 
     class MultiSpirograph:
         def __init__(self, screen):
