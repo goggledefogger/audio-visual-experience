@@ -784,99 +784,115 @@ class VisualEngine:
             self.width, self.height = screen.get_size()
             self.color = (220, 220, 220)
             self.bg_color = (0, 0, 0)
-            self.path = []
-            self.current_index = 0
-            self.speed = 1
+            self.brush_x = 0
+            self.brush_speed = self.width / 600  # Adjusted for 10 seconds to traverse the screen width
+            self.horizon = int(self.height * 0.75)
             self.buildings = []
-            self.generate_city_skyline()
-            self.valmorphanize_factor = 1.5
-            self.sky_alpha = 0
-            self.moon_alpha = 0
-            self.stars_alpha = 0
-            self.moon_pos = [50, int(self.height * 0.5)]
-            self.stars = [(np.random.randint(0, self.width), np.random.randint(0, int(self.height * 0.7))) for _ in range(100)]
+            self.clouds = [self.generate_cloud() for _ in range(5)]
+            self.moon_x = np.random.randint(50, self.width - 50)
+            self.moon_y = np.random.randint(50, int(self.height * 0.5))
+            self.moon_speed = 0.5
+            self.moon_phase = np.random.choice(['full', 'crescent', 'half', 'gibbous'])
 
-        def generate_city_skyline(self):
-            horizon = int(self.height * 0.75)
-            x = 0
-            while x < self.width:
-                building_width = np.random.randint(30, 100)
-                building_height = np.random.randint(50, self.height - horizon)
-                self.buildings.append((x, horizon - building_height, building_width, building_height))
-                x += building_width
+
+        def generate_cloud(self):
+            x = np.random.randint(-100, self.width + 100)
+            y = np.random.randint(50, self.horizon - 50)
+            num_circles = np.random.randint(3, 6)
+            circles = [(np.random.randint(x, x + 40), np.random.randint(y, y + 20), np.random.randint(15, 30)) for _ in range(num_circles)]
+            speed = np.random.uniform(0.2, 0.5)
+            return (circles, speed)
 
         def draw_sky_gradient(self):
-            self.sky_alpha += 0.0001
             for i in range(self.height):
-                alpha = i / self.height * self.sky_alpha
+                alpha = i / self.height
                 color = (int(alpha * 25), int(alpha * 25), int(alpha * 40))
                 pygame.draw.line(self.screen, color, (0, i), (self.width, i))
 
-        def draw_moon_or_sun(self):
-            self.moon_alpha += 0.0001
-            self.moon_pos[0] += 0.5
-            if self.moon_pos[0] > self.width:
-                self.moon_pos[0] = 0
-            pygame.draw.circle(self.screen, (255, 255, 200), tuple(self.moon_pos), 40)
+        def draw_moon(self):
+            color = (255, 255, 200)
+            if self.moon_phase == 'full':
+                pygame.draw.circle(self.screen, color, (int(self.moon_x), int(self.moon_y)), 30)
+            elif self.moon_phase == 'crescent':
+                pygame.draw.circle(self.screen, color, (int(self.moon_x), int(self.moon_y)), 30)
+                pygame.draw.circle(self.screen, self.bg_color, (int(self.moon_x) + 10, int(self.moon_y)), 30)
+            elif self.moon_phase == 'half':
+                pygame.draw.circle(self.screen, color, (int(self.moon_x), int(self.moon_y)), 30)
+                pygame.draw.circle(self.screen, self.bg_color, (int(self.moon_x) + 15, int(self.moon_y)), 30)
+            elif self.moon_phase == 'gibbous':
+                pygame.draw.circle(self.screen, color, (int(self.moon_x), int(self.moon_y)), 30)
+                pygame.draw.circle(self.screen, self.bg_color, (int(self.moon_x) - 10, int(self.moon_y)), 30)
 
-        def draw_stars(self):
-            for x, y in self.stars:
-                alpha = (math.sin(self.stars_alpha + x) + 1) / 2
-                color = (int(255 * alpha), int(255 * alpha), int(255 * alpha))
-                pygame.draw.circle(self.screen, color, (x, y), 1)
-            self.stars_alpha += 0.01
+        def draw_cloud(self, circles):
+            for x, y, radius in circles:
+                pygame.draw.circle(self.screen, (200, 200, 200), (int(x), int(y)), radius)
 
         def draw(self):
             self.screen.fill(self.bg_color)
             self.draw_sky_gradient()
-            self.draw_moon_or_sun()
-            self.draw_stars()
-            if len(self.path) > 1 and self.current_index > 1:
-                pygame.draw.lines(self.screen, self.color, False, self.path[:int(self.current_index)+1], 3)
-            for building in self.buildings:
-                pygame.draw.rect(self.screen, (50, 50, 50), building)
-                pygame.draw.rect(self.screen, self.color, building, 2)
-                # Drawing windows
-                for i in range(building[0]+5, building[0]+building[2]-5, 10):
-                    for j in range(building[1]+5, building[1]+building[3]-5, 10):
-                        pygame.draw.rect(self.screen, (70, 70, 70), (i, j, 5, 5))
+            for cloud in self.clouds:
+                self.draw_cloud(cloud[0])
+            self.draw_moon()
+
+            # Draw the buildings created by the brush
+            for x, y, width, height, building_color in self.buildings:
+                pygame.draw.line(self.screen, building_color, (x, y), (x + width, y), 2)  # Top
+                pygame.draw.line(self.screen, building_color, (x, y), (x, y + height), 2)  # Left
+                pygame.draw.line(self.screen, building_color, (x + width, y), (x + width, y + height), 2)  # Right
+
+                # Draw windows on the buildings
+                for wx in range(int(x) + 5, int(x + width), 10):
+                    for wy in range(int(y) + 5, int(y + height), 15):
+                        if np.random.random() < 0.7:
+                            pygame.draw.rect(self.screen, (255, 255, 0), (wx, wy, 5, 10))
+
             pygame.display.flip()
 
         def update(self):
-            self.current_index += self.speed * self.valmorphanize_factor
-            if self.current_index >= len(self.path):
-                self.current_index = 0
-                self.path = []
-                self.generate_city_skyline()
+            # Brush logic to draw buildings
+            building_width = np.random.randint(30, 100)
+            building_height = np.random.randint(50, self.height - self.horizon)
+            building_color = tuple(np.clip(np.array(self.color) + np.random.randint(-20, 20, 3), 0, 255))
+
+            # Adjust the brush movement speed
+            self.brush_x += self.brush_speed
+            if self.brush_x < self.width:
+                self.buildings.append((self.brush_x, self.horizon - building_height, building_width, building_height, building_color))
+            else:
+                self.brush_x = 0
+                self.buildings.clear()
+
+            # Update moon position
+            self.moon_x += self.moon_speed
+            if self.moon_x > self.width + 30:
+                self.moon_x = -30
+
+            # Update cloud positions
+            new_clouds = []
+            for circles, speed in self.clouds:
+                new_circles = [(x + speed, y, radius) for x, y, radius in circles]
+                if new_circles[0][0] > self.width + 100:
+                    new_clouds.append(self.generate_cloud())
+                else:
+                    new_clouds.append((new_circles, speed))
+            self.clouds = new_clouds
 
         def valmorphanize(self):
-            # Random frequency shift for the path
-            self.valmorphanize_factor = np.random.choice([0.5, 1.5, 2.5])
+            # Randomly change the brush speed
+            self.brush_speed = np.random.uniform(self.width / 800, self.width / 400)
 
-            # Random vertical position for the moon/sun
-            self.moon_pos[1] = np.random.randint(int(self.height * 0.3), int(self.height * 0.6))
+            # Randomly change the moon phase and speed
+            self.moon_phase = np.random.choice(['full', 'crescent', 'half', 'gibbous'])
+            self.moon_speed = np.random.uniform(0.3, 0.7)
 
-            # Randomly adjust the number of stars
-            star_count = np.random.randint(50, 150)
-            self.stars = [(np.random.randint(0, self.width), np.random.randint(0, int(self.height * 0.7))) for _ in range(star_count)]
+            # Randomly change the building color
+            self.color = (np.random.randint(150, 255), np.random.randint(150, 255), np.random.randint(150, 255))
 
-            # Randomly adjust building heights to create a new skyline
-            horizon = int(self.height * 0.75)
-            x = 0
-            self.buildings = []
-            while x < self.width:
-                building_width = np.random.randint(30, 100)
-                building_height = np.random.randint(50, self.height - horizon)
-                self.buildings.append((x, horizon - building_height, building_width, building_height))
-                x += building_width
+            # Randomly change the background color
+            self.bg_color = (np.random.randint(0, 50), np.random.randint(0, 50), np.random.randint(0, 50))
 
-            # Randomly adjust the speed of the path movement
-            self.speed = np.random.choice([0.5, 1, 1.5, 2])
-
-            # Random factor for the sky gradient's alpha increment
-            self.sky_alpha += np.random.uniform(-0.0002, 0.0002)
-
-
+            # Randomly regenerate clouds
+            self.clouds = [self.generate_cloud() for _ in range(np.random.randint(3, 7))]
     class LissajousCurve:
         def __init__(self, screen):
             self.screen = screen
