@@ -309,32 +309,32 @@ class VisualEngine:
             self.thickness_factor = max(min(self.thickness_factor, 2), 0.5)
             self.pulse_frequency = random.uniform(1, 5)
             self.max_circles = random.randint(3, 7)
-            
+
             while len(self.color_angles) < self.max_circles:
                 self.color_angles.append(random.uniform(0, 360))
                 new_radius = random.randint(20, min(self.width, self.height) // 6)
                 self.radii.append(new_radius)
                 self.initial_radii.append(new_radius)  # Update initial_radii
                 self.speeds.append(random.uniform(0.01, 0.04))
-                
+
             while len(self.color_angles) > self.max_circles:
                 idx = random.randint(0, len(self.color_angles) - 1)
                 self.color_angles.pop(idx)
                 self.radii.pop(idx)
                 self.initial_radii.pop(idx)  # Update initial_radii
                 self.speeds.pop(idx)
-                
+
             # Occasionally boost the radii to make the spirograph bigger
             if random.random() < 0.5:  # 50% chance to boost the radii
                 boost_factor = random.uniform(1.1, 1.5)  # Boost by 10% to 50%
                 self.radii = [int(r * boost_factor) for r in self.radii]
-                
+
             # Ensure radii don't exceed screen dimensions
             self.radii = [min(r, min(self.width, self.height) // 4) for r in self.radii]
-            
+
             self.start_x = random.randint(self.width // 4, 3 * self.width // 4)
             self.start_y = random.randint(self.height // 4, 3 * self.height // 4)
-    
+
     class PointillismPattern:
         def __init__(self, screen):
             self.screen = screen
@@ -664,15 +664,17 @@ class VisualEngine:
             self.frequency = 0.1
             self.speed = 0.05
             self.offset = 0
+            self.color_shift = 0
             self.color = self.get_color(self.offset)
             self.direction = 1  # 1 for vertical, -1 for horizontal
             self.thickness = 2
+            self.rotation_angle = 0
 
         def get_color(self, offset):
             """Generate a color based on the offset."""
-            r = int(127.5 * (1 + math.sin(offset)))
-            g = int(127.5 * (1 + math.sin(offset + 2 * math.pi / 3)))
-            b = int(127.5 * (1 + math.sin(offset + 4 * math.pi / 3)))
+            r = int(127.5 * (1 + math.sin(offset + self.color_shift)))
+            g = int(127.5 * (1 + math.sin(offset + 2 * math.pi / 3 + self.color_shift)))
+            b = int(127.5 * (1 + math.sin(offset + 4 * math.pi / 3 + self.color_shift)))
             return (r, g, b)
 
         def draw(self):
@@ -687,6 +689,7 @@ class VisualEngine:
 
         def update(self):
             self.offset += self.speed
+            self.color_shift += 0.01
             if self.offset > 2 * math.pi:
                 self.reset_pattern()
             self.amplitude = 10 + 5 * math.sin(self.offset)
@@ -696,12 +699,14 @@ class VisualEngine:
             self.color = self.get_color(self.offset)
             if random.random() < 0.01:
                 self.direction *= -1
+            self.rotation_angle += 0.01
 
         def valmorphanize(self):
             self.reset_pattern()
             self.amplitude *= 2
             self.color = self.get_color(self.offset + math.pi / 2)
             self.direction *= -1
+            self.rotation_angle += math.pi / 4
 
         def reset_pattern(self):
             self.offset = 0
@@ -709,6 +714,8 @@ class VisualEngine:
             self.frequency = 0.1
             self.speed = 0.05
             self.color = self.get_color(self.offset)
+
+
     class EKGPattern:
         def __init__(self, screen):
             self.screen = screen
