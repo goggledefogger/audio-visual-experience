@@ -334,8 +334,7 @@ class VisualEngine:
             
             self.start_x = random.randint(self.width // 4, 3 * self.width // 4)
             self.start_y = random.randint(self.height // 4, 3 * self.height // 4)
-
-
+    
     class PointillismPattern:
         def __init__(self, screen):
             self.screen = screen
@@ -346,11 +345,10 @@ class VisualEngine:
             self.bg_color2 = pygame.Color(200, 200, 255)
 
         def draw(self):
-            # Dynamic gradient background
-            for y in range(HEIGHT):
-                blend = y / HEIGHT
-                color = self.bg_color1.lerp(self.bg_color2, blend)
-                pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+            # Smooth background color transition
+            blend = (np.sin(self.time) + 1) / 2  # Oscillates between 0 and 1
+            color = self.bg_color1.lerp(self.bg_color2, blend)
+            self.screen.fill(color)
 
             # Adjust max_dots dynamically
             self.max_dots = int(400 + 100 * np.sin(self.time))
@@ -360,31 +358,32 @@ class VisualEngine:
                 x = random.randint(0, WIDTH)
                 y = random.randint(0, HEIGHT)
                 size = random.uniform(1, 3)
-                growth_rate = random.uniform(0.1, 0.3) * random.choice([1, -1])  # Increased growth rate
+                growth_rate = random.uniform(0.1, 0.3)
                 hue = (x + y + int(200 * np.sin(self.time))) % 360
                 color = pygame.Color(0)
-                color.hsva = (hue, 100, 100, random.randint(50, 100))  # Randomized opacity
-                dx = random.uniform(-1, 1)  # Increased movement speed
-                dy = random.uniform(-1, 1)  # Increased movement speed
-                self.dots.append([x, y, size, growth_rate, color, dx, dy])
+                color.hsva = (hue, 100, 100, random.randint(50, 100))
+                dx = random.uniform(-1, 1)
+                dy = random.uniform(-1, 1)
+                wave_factor = random.uniform(0.1, 0.5)
+                self.dots.append([x, y, size, growth_rate, color, dx, dy, wave_factor])
 
             # Draw and update dots
             for dot in self.dots:
                 pygame.draw.circle(self.screen, dot[4], (dot[0], dot[1]), int(dot[2]))
-                dot[2] += dot[3]
-                dot[0] += dot[5]
-                dot[1] += dot[6]
+                dot[2] += dot[3] * np.sin(self.time * dot[7])  # Pulsating size
+                dot[0] += dot[5] + dot[7] * np.sin(self.time)
+                dot[1] += dot[6] + dot[7] * np.cos(self.time)
+                dot[4].hsva = ((dot[4].hsva[0] + 1) % 360, 100, 100, 100)  # Slight color shift
 
                 if dot[2] > 20 or dot[2] < 1 or dot[0] < 0 or dot[0] > WIDTH or dot[1] < 0 or dot[1] > HEIGHT:
                     self.dots.remove(dot)
 
-            self.time += 0.02  # Increased time increment
+            self.time += 0.02
 
         def update(self):
             # Slowly change the background colors
             self.bg_color1.hsva = ((self.bg_color1.hsva[0] + 1) % 360, 100, 100, 100)
             self.bg_color2.hsva = ((self.bg_color2.hsva[0] - 1) % 360, 100, 100, 100)
-
 
         def valmorphanize(self):
             # Change maximum number of dots
