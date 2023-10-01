@@ -394,7 +394,6 @@ class VisualEngine:
             self.bg_color1 = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             self.bg_color2 = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
-
     class HexagonTessellation:
         def __init__(self, screen):
             self.screen = screen
@@ -409,7 +408,6 @@ class VisualEngine:
             self.pan_speed_x = random.choice([-1, 1]) * 0.5
             self.pan_speed_y = random.choice([-1, 1]) * 0.5
             self.bg_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(4)]
-            # Add a new attribute for valmorphanize effect duration
             self.valmorphanize_duration = 0
             self.original_speed_multiplier = 1
 
@@ -423,7 +421,10 @@ class VisualEngine:
             return palette
 
         def lerp_color(self, color1, color2, alpha):
-            return tuple(int(a * (1 - alpha) + b * alpha) for a, b in zip(color1, color2))
+            r = int(color1.r * (1 - alpha) + color2.r * alpha)
+            g = int(color1.g * (1 - alpha) + color2.g * alpha)
+            b = int(color1.b * (1 - alpha) + color2.b * alpha)
+            return pygame.Color(r, g, b)
 
         def draw(self):
             gradient = pygame.Surface((WIDTH, HEIGHT))
@@ -441,14 +442,14 @@ class VisualEngine:
             alpha = self.time % 1
             for row in range(rows + 1):
                 for col in range(cols + 1):
-                    hex_size = base_hex_size + 15 * np.sin(2 * self.time + row + col)  # Faster size modulation
+                    hex_size = base_hex_size + 15 * np.sin(2 * self.time + row + col)
                     x = col * np.sqrt(3) * base_hex_size * self.zoom_factor + self.pan_x
                     y = row * 1.5 * base_hex_size * self.zoom_factor + self.pan_y
                     if col % 2 == 1:
                         y += 0.75 * base_hex_size * self.zoom_factor
-                    color_idx = (row + col) % 8
-                    next_color_idx = (color_idx + 1) % 8
-                    color = self.lerp_color(self.palette[color_idx], self.palette[next_color_idx], alpha)
+                    color = self.lerp_color(self.palette[row % 8], self.palette[col % 8], alpha)
+                    color_alpha = int(100 * (0.7 + 0.3 * np.sin(self.time)))  # Calculate opacity modulation
+                    color.hsla = (color.hsla[0], color.hsla[1], color.hsla[2], color_alpha)  # Set the alpha value
                     self.draw_hexagon(x, y, color, hex_size)
 
         def draw_hexagon(self, x, y, color, hex_size):
@@ -462,22 +463,17 @@ class VisualEngine:
             pygame.draw.polygon(self.screen, (30, 30, 30), hexagon, 2)  # Border
 
         def update(self):
-            self.angle += 0.01  # Faster rotation
-            self.time += 0.005  # Faster color transition
-
-            # Dynamic zooming
+            self.angle += 0.01
+            self.time += 0.005
             self.zoom_factor += 0.005 * self.zoom_direction
             if self.zoom_factor > 1.2 or self.zoom_factor < 0.8:
                 self.zoom_direction *= -1
-
-            # Panning effect
             self.pan_x += self.pan_speed_x
             self.pan_y += self.pan_speed_y
             if abs(self.pan_x) > WIDTH * 0.2:
                 self.pan_speed_x *= -1
             if abs(self.pan_y) > HEIGHT * 0.2:
                 self.pan_speed_y *= -1
-
             if self.valmorphanize_duration > 0:
                 self.valmorphanize_duration -= 1
                 if self.valmorphanize_duration == 0:
@@ -485,21 +481,12 @@ class VisualEngine:
                     self.hex_size_multiplier = 1
 
         def valmorphanize(self):
-            # Change the base hue and generate a new palette
             self.base_hue = random.random()
             self.palette = self.generate_palette()
-
-            # Invert and augment the angle for drastic change (0 for no rotation, 3.14 for inverted)
             self.angle = 3.14 if random.random() > 0.5 else 0
-
-            # Change pan direction
             self.pan_speed_x *= random.choice([-1, 1])
             self.pan_speed_y *= random.choice([-1, 1])
-
-            # Change Time drastically
             self.time = random.uniform(0, 10)
-
-            # Change Zoom factor
             self.zoom_factor = random.uniform(0.5, 1.5)
 
     class Starfield:
