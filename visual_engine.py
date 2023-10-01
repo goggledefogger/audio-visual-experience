@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import random
 import colorsys
+import math
 
 # Constants
 WIDTH, HEIGHT = 800, 600
@@ -561,3 +562,321 @@ class VisualEngine:
 
             # Change Zoom factor
             self.zoom_factor = random.uniform(0.5, 1.5)
+
+    class Starfield:
+        def __init__(self, screen):
+            self.screen = screen
+            self.stars = [(random.randint(0, WIDTH), random.randint(0, HEIGHT), random.random()) for _ in range(200)]
+            self.direction = 1  # 1 for outward, -1 for inward
+            self.speed_boost = 1
+
+        def draw(self):
+            self.screen.fill((0, 0, 0))
+            for x, y, z in self.stars:
+                color = (int(255 * z), int(255 * z), 255)
+                pygame.draw.circle(self.screen, color, (int(x), int(y)), int(5 * z))
+
+        def update(self):
+            new_stars = []
+            for x, y, z in self.stars:
+                x += self.direction * self.speed_boost * (x - WIDTH // 2) * z * 0.05
+                y += self.direction * self.speed_boost * (y - HEIGHT // 2) * z * 0.05
+                if 0 <= x <= WIDTH and 0 <= y <= HEIGHT:
+                    new_stars.append((x, y, z))
+                else:
+                    new_stars.append((random.randint(0, WIDTH), random.randint(0, HEIGHT), random.random()))
+            self.stars = new_stars
+            if self.speed_boost > 1:
+                self.speed_boost *= 0.98  # Gradually reduce the speed boost
+
+        def valmorphanize(self):
+            self.speed_boost = 5  # Increase speed for a short burst
+
+
+    class WavePattern:
+        def __init__(self, screen):
+            self.screen = screen
+            self.time = 0
+            self.inverted = 1  # 1 for normal wave, -1 for inverted wave
+            self.frequency_shift = 1
+
+        def draw(self):
+            self.screen.fill((0, 0, 0))
+            for x in range(0, WIDTH, 10):
+                y1 = int(HEIGHT / 2 + self.inverted * 100 * math.sin(self.frequency_shift * x / 50 + self.time))
+                y2 = int(HEIGHT / 2 + self.inverted * 80 * math.sin(self.frequency_shift * x / 30 + 2 * self.time))
+                y3 = int(HEIGHT / 2 + self.inverted * 60 * math.sin(self.frequency_shift * x / 20 + 3 * self.time))
+                pygame.draw.circle(self.screen, (0, 255, 255), (x, y1), 5)
+                pygame.draw.circle(self.screen, (255, 0, 255), (x, y2), 5)
+                pygame.draw.circle(self.screen, (255, 255, 0), (x, y3), 5)
+
+        def update(self):
+            self.time += 0.1
+
+        def valmorphanize(self):
+            self.frequency_shift = random.uniform(0.5, 1.5)  # Random frequency shift
+
+
+    class RotatingSpiral:
+        def __init__(self, screen):
+            self.screen = screen
+            self.angle = 0
+            self.direction = 1  # 1 for clockwise, -1 for counter-clockwise
+            self.speed = 0.05
+            self.arms = 200
+            self.bird_positions = [(random.randint(0, WIDTH), random.randint(0, HEIGHT)) for _ in range(10)]
+            self.bird_angles = [random.uniform(0, 2 * math.pi) for _ in range(10)]
+            self.bird_speeds = [random.uniform(0.01, 0.03) for _ in range(10)]
+
+        def draw_bird_silhouette(self, x, y, angle):
+            # Transformations for rotation
+            s, c = math.sin(angle), math.cos(angle)
+
+            # Body of the bird
+            pygame.draw.ellipse(self.screen, (200, 200, 200), (x, y, 60, 30))
+            
+            # Wing of the bird
+            wing_points = [(x+30, y), (x+60, y-20), (x, y-20)]
+            wing_points_rotated = [(x + c*(px-x) - s*(py-y), y + s*(px-x) + c*(py-y)) for px, py in wing_points]
+            pygame.draw.polygon(self.screen, (200, 200, 200), wing_points_rotated)
+            
+            # Tail of the bird
+            tail_points = [(x, y+15), (x-20, y+30), (x, y+30)]
+            tail_points_rotated = [(x + c*(px-x) - s*(py-y), y + s*(px-x) + c*(py-y)) for px, py in tail_points]
+            pygame.draw.polygon(self.screen, (200, 200, 200), tail_points_rotated)
+
+        def draw(self):
+            # Background effect with moving and rotating bird pattern
+            for i, (x, y) in enumerate(self.bird_positions):
+                self.draw_bird_silhouette(x, y, self.bird_angles[i])
+                self.bird_positions[i] = (x + self.bird_speeds[i] * math.cos(self.bird_angles[i]),
+                                        y + self.bird_speeds[i] * math.sin(self.bird_angles[i]))
+                self.bird_angles[i] += 0.01  # Slowly rotate the birds
+
+                # Wrap the birds around the screen
+                if x < 0 or x > WIDTH or y < 0 or y > HEIGHT:
+                    self.bird_positions[i] = (x % WIDTH, y % HEIGHT)
+
+            for i in range(1, self.arms, 2):
+                x_pos = int(WIDTH / 2 + i * math.cos(self.angle + i))
+                y_pos = int(HEIGHT / 2 + i * math.sin(self.angle + i))
+                color = (int((self.angle * 100 + i) % 255), int((self.angle * 50 + i) % 255), int((self.angle * 25 + i) % 255))
+                pygame.draw.circle(self.screen, color, (x_pos, y_pos), 5)
+
+        def update(self):
+            self.angle += self.direction * self.speed
+            self.arms = 100 + int(100 * math.sin(self.angle))
+
+        def valmorphanize(self):
+            self.direction *= -1  # Reverse the rotation direction
+            self.speed *= 2  # Double the rotation speed
+
+
+
+    class BouncingBalls:
+        def __init__(self, screen):
+            self.screen = screen
+            self.balls = [(random.randint(50, WIDTH - 50), random.randint(50, HEIGHT - 50), random.randint(1, 5), random.randint(1, 5), random.randint(10, 30), (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) for _ in range(20)]
+
+        def draw(self):
+            self.screen.fill((0, 0, 0))
+            for x, y, dx, dy, radius, color in self.balls:
+                pygame.draw.circle(self.screen, color, (x, y), radius)
+                pygame.draw.circle(self.screen, (0, 0, 0), (x, y), radius - 2)
+
+        def update(self):
+            new_balls = []
+            for x, y, dx, dy, radius, color in self.balls:
+                x += dx
+                y += dy
+                if x - radius <= 0 or x + radius >= WIDTH:
+                    dx = -dx
+                if y - radius <= 0 or y + radius >= HEIGHT:
+                    dy = -dy
+                radius = max(10, min(30, radius + random.randint(-1, 1)))
+                new_balls.append((x, y, dx, dy, radius, color))
+            self.balls = new_balls
+
+        def valmorphanize(self):
+            self.balls = [(x, y, random.randint(-5, 5), random.randint(-5, 5), radius, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) for x, y, _, _, radius, _ in self.balls]
+
+
+    class ZigZagPattern:
+        def __init__(self, screen):
+            self.screen = screen
+            self.spacing = 20
+            self.amplitude = 10
+            self.frequency = 0.1
+            self.speed = 0.05
+            self.offset = 0
+            self.color = self.get_color(self.offset)
+            self.direction = 1  # 1 for vertical, -1 for horizontal
+            self.thickness = 2
+
+        def get_color(self, offset):
+            """Generate a color based on the offset."""
+            r = int(127.5 * (1 + math.sin(offset)))
+            g = int(127.5 * (1 + math.sin(offset + 2 * math.pi / 3)))
+            b = int(127.5 * (1 + math.sin(offset + 4 * math.pi / 3)))
+            return (r, g, b)
+
+        def draw(self):
+            for y in range(0, HEIGHT, self.spacing):
+                points = []
+                for x in range(0, WIDTH, 10):
+                    if self.direction == 1:
+                        points.append((x, y + self.amplitude * math.sin(self.frequency * x + self.offset)))
+                    else:
+                        points.append((y + self.amplitude * math.sin(self.frequency * y + self.offset), x))
+                pygame.draw.lines(self.screen, self.color, False, points, self.thickness)
+
+        def update(self):
+            self.offset += self.speed
+            if self.offset > 2 * math.pi:
+                self.reset_pattern()
+            self.amplitude = 10 + 5 * math.sin(self.offset)
+            self.spacing = int(20 + 10 * math.sin(0.5 * self.offset))
+            self.frequency += 0.001
+            self.thickness = int(2 + math.sin(self.offset))
+            self.color = self.get_color(self.offset)
+            if random.random() < 0.01:
+                self.direction *= -1
+
+        def valmorphanize(self):
+            self.reset_pattern()
+            self.amplitude *= 2
+            self.color = self.get_color(self.offset + math.pi / 2)
+            self.direction *= -1
+
+        def reset_pattern(self):
+            self.offset = 0
+            self.amplitude = 10
+            self.frequency = 0.1
+            self.speed = 0.05
+            self.color = self.get_color(self.offset)
+
+
+    class EKGPattern:
+        def __init__(self, screen):
+            self.screen = screen
+            self.width, self.height = screen.get_size()
+            self.points = []
+            self.base_amplitude = 50
+            self.frequency = 0.05
+            self.speed = 5
+            self.color = (255, 255, 255)
+            self.x = 0
+            self.y_offset = 0
+            self.vertical_shift = 0
+            self.max_vertical_shift = 50
+            self.vertical_shift_direction = 1
+            self.vertical_shift_speed = 2
+
+        def update(self):
+            self.x += self.speed
+            if self.x > self.width:
+                self.x = 0
+                self.points.clear()
+
+            # EKG waveform logic
+            segment = len(self.points) % 150
+            current_amplitude = self.base_amplitude + np.random.randint(-10, 10)
+            if segment < 30:
+                self.y_offset = 0
+            elif segment < 60:
+                self.y_offset = current_amplitude * np.sin(self.frequency * self.x)
+            elif segment < 90:
+                self.y_offset = 0
+            else:
+                self.y_offset = -current_amplitude * 0.5 * np.sin(self.frequency * 0.5 * self.x)
+
+            # Vertical shift logic
+            self.vertical_shift += self.vertical_shift_speed * self.vertical_shift_direction
+            if abs(self.vertical_shift) > self.max_vertical_shift:
+                self.vertical_shift_direction *= -1
+
+            y = self.height // 2 + self.y_offset + self.vertical_shift
+            self.points.append((self.x, y))
+
+        def draw(self):
+            self.screen.fill((0, 0, 0))
+            # Draw background grid
+            for i in range(0, self.width, 40):
+                pygame.draw.line(self.screen, (25, 25, 25), (i, 0), (i, self.height))
+            for i in range(0, self.height, 40):
+                pygame.draw.line(self.screen, (25, 25, 25), (0, i), (self.width, i))
+            
+            if len(self.points) > 1:
+                pygame.draw.aalines(self.screen, self.color, False, self.points)
+
+        def valmorphanize(self):
+            self.speed = np.random.choice([3, 5, 7])
+            self.base_amplitude = np.random.choice([40, 50, 60])
+            self.frequency *= np.random.choice([1.25, 1.5])
+
+
+    class EtchASketch:
+        def __init__(self, screen):
+            self.screen = screen
+            self.width, self.height = screen.get_size()
+            self.color = (220, 220, 220)
+            self.bg_color = (0, 0, 0)
+            self.path = []
+            self.current_index = 0
+            self.speed = 16
+            self.buildings = []
+            self.generate_city_skyline()
+            self.valmorphanize_factor = 1.5
+            self.sky_alpha = 0
+            self.moon_alpha = 0
+            self.stars_alpha = 0
+
+        def generate_city_skyline(self):
+            horizon = int(self.height * 0.75)
+            x = 0
+            while x < self.width:
+                building_width = np.random.randint(30, 100)
+                building_height = np.random.randint(50, self.height - horizon)
+                self.buildings.append((x, horizon - building_height, building_width, building_height))
+                x += building_width
+
+        def draw_sky_gradient(self):
+            self.sky_alpha += 0.0005
+            for i in range(self.height):
+                alpha = i / self.height * self.sky_alpha
+                color = (int(alpha * 25), int(alpha * 25), int(alpha * 40))
+                pygame.draw.line(self.screen, color, (0, i), (self.width, i))
+
+        def draw_moon_or_sun(self):
+            self.moon_alpha += 0.0005
+            color = (255, 255, 200)
+            pygame.draw.circle(self.screen, color, (np.random.randint(50, self.width - 50), np.random.randint(50, int(self.height * 0.5))), np.random.randint(20, 50))
+
+        def draw_stars(self):
+            self.stars_alpha += 0.0005
+            for _ in range(100):
+                x = np.random.randint(0, self.width)
+                y = np.random.randint(0, int(self.height * 0.7))
+                color = (255, 255, 255)
+                pygame.draw.circle(self.screen, color, (x, y), 1)
+
+        def draw(self):
+            self.screen.fill(self.bg_color)
+            self.draw_sky_gradient()
+            self.draw_moon_or_sun()
+            self.draw_stars()
+            if len(self.path) > 1 and self.current_index > 1:
+                pygame.draw.lines(self.screen, self.color, False, self.path[:int(self.current_index)+1], 3)
+            for building in self.buildings:
+                pygame.draw.rect(self.screen, (150, 150, 150), building)
+            pygame.display.flip()
+
+        def update(self):
+            self.current_index += self.speed * self.valmorphanize_factor
+            if self.current_index >= len(self.path):
+                self.current_index = 0
+                self.path = []
+                self.generate_city_skyline()
+
+        def valmorphanize(self):
+            self.valmorphanize_factor = np.random.choice([0.5, 1.5, 2.5])
