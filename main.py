@@ -65,7 +65,8 @@ def main():
 
 
         # Update and draw fractal
-        current_fractal.update()
+        if hasattr(current_fractal, 'update'):
+            current_fractal.update()
         current_fractal.draw()
 
         # Generate and play sound

@@ -3,6 +3,7 @@ import numpy as np
 import random
 import colorsys
 import math
+import noise
 
 # Constants
 WIDTH, HEIGHT = 800, 600
@@ -974,3 +975,97 @@ class VisualEngine:
                 self.speeds[i] = np.random.uniform(0.005, 0.02)
                 self.colors[i] = (np.random.randint(150, 255), np.random.randint(150, 255), np.random.randint(150, 255))
             self.bg_color = (np.random.randint(0, 50), np.random.randint(0, 50), np.random.randint(0, 50))
+
+    class PerlinFlowField:
+        class Particle:
+            def __init__(self, x, y, screen_width, screen_height):
+                self.x = x
+                self.y = y
+                self.screen_width = screen_width
+                self.screen_height = screen_height
+                self.color = (np.random.randint(50, 255), np.random.randint(50, 255), np.random.randint(50, 255))
+                self.speed = 2
+                self.vel = np.array([0, 0])  # Initialize velocity
+
+            def update(self, angle):
+                # Update the particle's position based on its velocity
+                self.x += self.speed * np.cos(angle)
+                self.y += self.speed * np.sin(angle)
+
+                # Wrap around the screen if the particle goes out of bounds
+                self.x %= self.screen_width
+                self.y %= self.screen_height
+
+
+        def __init__(self, screen):
+            self.screen = screen
+            self.width, self.height = screen.get_size()
+
+            # 1. Reduce the number of particles to half
+            self.particles = [self.Particle(np.random.randint(0, self.width), np.random.randint(0, self.height), self.width, self.height) for _ in range(250)]
+
+            self.flowfield_resolution = 10
+            self.noise_scale = 0.1
+            self.color_shift = 0
+            self.circle_size = 3  # Default circle size
+
+            # 2. Define a limited color palette
+            self.color_palette = [
+                (255, 0, 0),  # Red
+                (0, 255, 0),  # Green
+                (0, 0, 255),  # Blue
+                (255, 255, 0),  # Yellow
+                (0, 255, 255),  # Cyan
+            ]
+
+        def draw(self):
+            # Fade effect
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 2))  # The last value is the alpha channel (transparency)
+            self.screen.blit(overlay, (0, 0))
+
+            # Update particles
+            for particle in self.particles:
+                # Get noise value based on particle's position
+                noise_val = noise.pnoise2(particle.x * self.noise_scale,
+                                        particle.y * self.noise_scale,
+                                        octaves=3,
+                                        persistence=0.5,
+                                        lacunarity=2.0,
+                                        repeatx=self.width,
+                                        repeaty=self.height,
+                                        base=42)
+
+                # Convert noise value to angle
+                angle = noise_val * 2 * np.pi
+
+                # Update particle's velocity and position based on angle
+                particle.update(angle)
+
+                 # Use colors from the limited palette
+                color = self.color_palette[int((angle + self.color_shift) % len(self.color_palette))]
+                pygame.draw.circle(self.screen, color, (int(particle.x), int(particle.y)), self.circle_size)
+
+                # Respawn particle if it goes off screen
+                if particle.x < 0 or particle.x > self.width or particle.y < 0 or particle.y > self.height:
+                    particle.x = np.random.randint(0, self.width)
+                    particle.y = np.random.randint(0, self.height)
+                    particle.prev_pos = np.array([particle.x, particle.y])
+
+            # Gradually change color
+            self.color_shift += 0.005
+
+            pygame.display.flip()
+
+        def valmorphanize(self):
+            # Randomly adjust the particle speed
+            self.particles_speed_factor = np.random.choice([0.5, 1, 1.5, 2])
+            for particle in self.particles:
+                particle.speed *= self.particles_speed_factor
+
+            # Randomly adjust the noise scale
+            self.noise_scale = np.random.choice([0.05, 0.1, 0.15, 0.2])
+
+            # Randomly adjust the circle size
+            self.circle_size = np.random.randint(2, 6)
+

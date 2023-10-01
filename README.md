@@ -1,10 +1,10 @@
-# Welcome to Audio-Visual Experience! 🎧🎨
+# Welcome to a Fractal Experience! 🎧🎨
 
 Ever wondered what it'd be like if sounds had their own visual vibe? That's what I've been tinkering with here, a blend of beats and visuals, it's been fun putting it together with the help of an AI LLM assistant doing all the hard math for me
 
-## So, What's the Deal?
+## What's the Deal?
 
-What if we could see our favorite sounds with math? Generate the visuals without knowing how. And that's how the Audio-Visual Experience came to life. It's a bit of an experiment, a bit of fun, a whole lot of nerdiness
+What if we could see our favorite sounds with math? Generate the visuals without knowing how. And that's how the Fractal Experience came to life. It's a bit of an experiment, a bit of fun, a whole lot of nerdiness
 
 ## Dive into the Mix
 
@@ -13,7 +13,7 @@ What if we could see our favorite sounds with math? Generate the visuals without
 - **UI Elements**: interface that ties it all together
 - **Main**: main stage, where everything comes alive
 
-## Fancy a Spin?
+## Take a Spin
 
 1. **Get the Goods**:
    ```
