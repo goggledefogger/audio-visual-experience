@@ -778,7 +778,6 @@ class VisualEngine:
             self.vertical_shift_speed = np.random.choice([1, 2, 3])
             self.max_vertical_shift = np.random.choice([40, 50, 60, 70])
 
-
     class EtchASketch:
         def __init__(self, screen):
             self.screen = screen
@@ -794,6 +793,8 @@ class VisualEngine:
             self.sky_alpha = 0
             self.moon_alpha = 0
             self.stars_alpha = 0
+            self.moon_pos = [50, int(self.height * 0.5)]
+            self.stars = [(np.random.randint(0, self.width), np.random.randint(0, int(self.height * 0.7))) for _ in range(100)]
 
         def generate_city_skyline(self):
             horizon = int(self.height * 0.75)
@@ -805,24 +806,25 @@ class VisualEngine:
                 x += building_width
 
         def draw_sky_gradient(self):
-            self.sky_alpha += 0.0001  # Reduced speed
+            self.sky_alpha += 0.0001
             for i in range(self.height):
                 alpha = i / self.height * self.sky_alpha
                 color = (int(alpha * 25), int(alpha * 25), int(alpha * 40))
                 pygame.draw.line(self.screen, color, (0, i), (self.width, i))
 
         def draw_moon_or_sun(self):
-            self.moon_alpha += 0.0001  # Reduced speed
-            color = (255, 255, 200)
-            pygame.draw.circle(self.screen, color, (np.random.randint(50, self.width - 50), np.random.randint(50, int(self.height * 0.5))), np.random.randint(20, 50))
+            self.moon_alpha += 0.0001
+            self.moon_pos[0] += 0.5
+            if self.moon_pos[0] > self.width:
+                self.moon_pos[0] = 0
+            pygame.draw.circle(self.screen, (255, 255, 200), tuple(self.moon_pos), 40)
 
         def draw_stars(self):
-            self.stars_alpha += 0.0001  # Reduced speed
-            for _ in range(100):
-                x = np.random.randint(0, self.width)
-                y = np.random.randint(0, int(self.height * 0.7))
-                color = (255, 255, 255)
+            for x, y in self.stars:
+                alpha = (math.sin(self.stars_alpha + x) + 1) / 2
+                color = (int(255 * alpha), int(255 * alpha), int(255 * alpha))
                 pygame.draw.circle(self.screen, color, (x, y), 1)
+            self.stars_alpha += 0.01
 
         def draw(self):
             self.screen.fill(self.bg_color)
@@ -832,8 +834,12 @@ class VisualEngine:
             if len(self.path) > 1 and self.current_index > 1:
                 pygame.draw.lines(self.screen, self.color, False, self.path[:int(self.current_index)+1], 3)
             for building in self.buildings:
-                pygame.draw.rect(self.screen, (50, 50, 50), building)  # Darker fill
-                pygame.draw.rect(self.screen, self.color, building, 2)  # Outline
+                pygame.draw.rect(self.screen, (50, 50, 50), building)
+                pygame.draw.rect(self.screen, self.color, building, 2)
+                # Drawing windows
+                for i in range(building[0]+5, building[0]+building[2]-5, 10):
+                    for j in range(building[1]+5, building[1]+building[3]-5, 10):
+                        pygame.draw.rect(self.screen, (70, 70, 70), (i, j, 5, 5))
             pygame.display.flip()
 
         def update(self):
@@ -844,7 +850,32 @@ class VisualEngine:
                 self.generate_city_skyline()
 
         def valmorphanize(self):
+            # Random frequency shift for the path
             self.valmorphanize_factor = np.random.choice([0.5, 1.5, 2.5])
+
+            # Random vertical position for the moon/sun
+            self.moon_pos[1] = np.random.randint(int(self.height * 0.3), int(self.height * 0.6))
+
+            # Randomly adjust the number of stars
+            star_count = np.random.randint(50, 150)
+            self.stars = [(np.random.randint(0, self.width), np.random.randint(0, int(self.height * 0.7))) for _ in range(star_count)]
+
+            # Randomly adjust building heights to create a new skyline
+            horizon = int(self.height * 0.75)
+            x = 0
+            self.buildings = []
+            while x < self.width:
+                building_width = np.random.randint(30, 100)
+                building_height = np.random.randint(50, self.height - horizon)
+                self.buildings.append((x, horizon - building_height, building_width, building_height))
+                x += building_width
+
+            # Randomly adjust the speed of the path movement
+            self.speed = np.random.choice([0.5, 1, 1.5, 2])
+
+            # Random factor for the sky gradient's alpha increment
+            self.sky_alpha += np.random.uniform(-0.0002, 0.0002)
+
 
     class LissajousCurve:
         def __init__(self, screen):
