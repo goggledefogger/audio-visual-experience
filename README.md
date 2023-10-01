@@ -1,4 +1,4 @@
-# Welcome to a Fractal Experience! 🎧🎨
+# A Fractal Experience 🎧🎨💽
 
 Ever wondered what it'd be like if sounds had their own visual vibe? That's what I've been tinkering with here, a blend of beats and visuals, it's been fun putting it together with the help of an AI LLM assistant doing all the hard math for me
 

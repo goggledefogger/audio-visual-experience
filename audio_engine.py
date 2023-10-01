@@ -6,6 +6,7 @@ class AudioEngine:
     def __init__(self, sample_rate=44100, duration=0.1):
         self.sample_rate = sample_rate
         self.duration = duration
+        self.muted = False
 
     def note_to_frequency(self, note_name):
         """Convert a note name (e.g., 'C4') to its frequency in Hz."""
@@ -138,6 +139,9 @@ class AudioEngine:
         return pattern_frequencies
 
     def play_sound(self, sound_array):
+        if self.muted:
+            return
+
         """Play a sound from a numpy array."""
         # Convert mono sound to stereo
         stereo_sound = np.vstack([sound_array, sound_array]).T
@@ -146,3 +150,9 @@ class AudioEngine:
         sound = pygame.sndarray.make_sound(np.int16(contiguous_array * 32767))
         sound.play()
 
+
+    def mute(self):
+        self.muted = True
+
+    def unmute(self):
+        self.muted = False

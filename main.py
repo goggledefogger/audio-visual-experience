@@ -2,7 +2,7 @@ import pygame
 import pygame_gui
 from visual_engine import VisualEngine
 from audio_engine import AudioEngine
-from ui_elements import Button
+from ui_elements import Button, MuteButton
 
 # Constants
 WIDTH, HEIGHT = 800, 600
@@ -42,8 +42,10 @@ def main():
     drop_down_menu = pygame_gui.elements.UIDropDownMenu(fractal_names, fractal_names[0], pygame.Rect((10, 10), (150, 30)), manager)
 
     # Button setup
-    quit_button = Button(WIDTH - 110, 10, 100, 40, "Quit", (255, 0, 0))
+    quit_button = Button(WIDTH - 110, HEIGHT - 60, 100, 40, "Quit", (255, 0, 0))
     valmorphanize_button = Button(VALMORPHANIZE_BUTTON_X, VALMORPHANIZE_BUTTON_Y, VALMORPHANIZE_BUTTON_WIDTH, VALMORPHANIZE_BUTTON_HEIGHT, "Valmorphanize", (0, 255, 0))
+    mute_button = MuteButton(WIDTH-220, HEIGHT-60, 100, 40, "Mute", (255, 0, 0), (150, 150, 150), audio_engine=audio_engine)
+
 
     while running:
         time_delta = clock.tick(30)/1000.0  # Add the time_delta
@@ -62,6 +64,8 @@ def main():
                     running = False
                 if valmorphanize_button.is_over(pygame.mouse.get_pos()):
                     current_fractal.valmorphanize()
+                if mute_button.is_over(pygame.mouse.get_pos()):
+                    mute_button.toggle_mute()
 
 
         # Update and draw fractal
@@ -77,6 +81,7 @@ def main():
         # Draw the button after the fractal
         quit_button.draw(screen)
         valmorphanize_button.draw(screen)
+        mute_button.draw(screen)
 
         # Update and draw the UI
         manager.update(time_delta)
