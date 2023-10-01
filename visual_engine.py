@@ -124,18 +124,22 @@ class VisualEngine:
         def __init__(self, screen):
             self.screen = screen
             self.t = 0
-            self.bg_color = (0, 0, 0)
+            self.bg_hue = random.random()
             self.spirographs = [self._create_spirograph() for _ in range(3)]  # Create 3 spirographs
 
         def _create_spirograph(self):
             R = random.randint(50, 150)
             r = random.randint(25, 125)
             l = random.uniform(0.5, 1.0)
-            color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            hue = random.random()
+            color = colorsys.hsv_to_rgb(hue, 0.8, 0.8)  # High saturation and value for vibrant colors
+            color = tuple(int(c * 255) for c in color)
             return {"R": R, "r": r, "l": l, "color": color, "points": []}
 
         def draw(self):
-            self.screen.fill(self.bg_color)
+            bg_color = colorsys.hsv_to_rgb(self.bg_hue, 0.3, 0.3)  # Low saturation and value for subdued background
+            bg_color = tuple(int(c * 255) for c in bg_color)
+            self.screen.fill(bg_color)
             for spiro in self.spirographs:
                 for point in spiro["points"]:
                     pygame.draw.circle(self.screen, spiro["color"], (int(point[0]), int(point[1])), 1)
@@ -155,18 +159,25 @@ class VisualEngine:
                     spiro["points"].pop(0)
 
             self.t += 0.05
+            self.bg_hue = (self.bg_hue + 0.001) % 1.0  # Slowly change the background hue
 
         def valmorphanize(self):
             for spiro in self.spirographs:
-                # Change base hue slightly and increase saturation to give a boosted feel
-                h, s, v = colorsys.rgb_to_hsv(*spiro["color"])
-                h = (h + random.uniform(-0.1, 0.1)) % 1.0  # slight change in hue
-                s = min(1, s + random.uniform(0.1, 0.3))  # increase saturation but don't exceed 1
-                spiro['color'] = colorsys.hsv_to_rgb(h, s, v)
+                # Clear the points to reset the drawing
+                spiro["points"].clear()
 
-            # Boost the time change slightly (equivalent to speed) for more rapid transformations
-            self.t += (0.05 + random.uniform(0.05, 0.2)) # increase the change in time step to make the transitions faster
+                # Randomize spirograph parameters
+                spiro["R"] = random.randint(50, 150)
+                spiro["r"] = random.randint(25, 125)
+                spiro["l"] = random.uniform(0.5, 1.0)
 
+                # Randomize color
+                hue = random.random()
+                color = colorsys.hsv_to_rgb(hue, 0.8, 0.8)  # High saturation and value for vibrant colors
+                spiro["color"] = tuple(int(c * 255) for c in color)
+
+            # Randomize background hue
+            self.bg_hue = random.random()
 
 
     class DragonCurve:
@@ -239,98 +250,88 @@ class VisualEngine:
             # Reset current step
             self.current_step = 0
 
-
     class ColorfulSpirograph:
         def __init__(self, screen):
             self.screen = screen
             self.width, self.height = screen.get_size()
-            self.max_circles = random.randint(3, 7)  # Variable number of circles
-            self.angles = [random.uniform(0, 2 * np.pi) for _ in range(self.max_circles)]
-            self.radii = [random.randint(20, min(self.width, self.height) // 6) for _ in range(self.max_circles)]
+            self.max_circles = random.randint(3, 7)
+            self.color_angles = [random.uniform(0, 360) for _ in range(self.max_circles)]
+            self.initial_radii = [random.randint(20, min(self.width, self.height) // 6) for _ in range(self.max_circles)]
+            self.radii = self.initial_radii.copy()
             self.speeds = [random.uniform(0.01, 0.04) for _ in range(self.max_circles)]
-            self.color_angle = 0
             self.bg_hue = random.randint(0, 360)
             self.time = 0
-            self.pulse_frequency = random.uniform(5, 20)
+            self.pulse_frequency = random.uniform(1, 5)
             self.thickness_factor = 1
-            self.pulse_direction = random.choice([-1, 1])
-            self.start_x = random.randint(self.width // 4, 3 * self.width // 4)  # Dynamic starting point
-            self.start_y = random.randint(self.height // 4, 3 * self.height // 4)  # Dynamic starting point
+            self.start_x = self.width // 2
+            self.start_y = self.height // 2
             self.bg_pulse = 0
 
         def draw_gradient_background(self):
+            avg_hue = sum(self.color_angles) / len(self.color_angles)
             top_color = pygame.Color(0)
             bottom_color = pygame.Color(0)
-            top_color.hsva = ((self.bg_hue + int(10 * np.sin(self.bg_pulse))) % 360, 50, 85, 100)  # Background pulse
-            bottom_color.hsva = ((self.bg_hue + 180 + int(10 * np.sin(self.bg_pulse))) % 360, 50, 65, 100)  # Background pulse
+            top_color.hsva = ((avg_hue + int(10 * np.sin(self.bg_pulse))) % 360, 50, 85, 100)
+            bottom_color.hsva = ((avg_hue + 180 + int(10 * np.sin(self.bg_pulse))) % 360, 50, 65, 100)
 
             for y in range(self.height):
                 blend = y / self.height
                 color = top_color.lerp(bottom_color, blend)
                 pygame.draw.line(self.screen, color, (0, y), (self.width, y))
 
-
         def draw(self):
             self.draw_gradient_background()
 
-            for i in range(len(self.angles)):
-                for _ in range(10):  # Draw 10 circles in each frame for denser patterns
-                    x = self.start_x + self.radii[i] * np.cos(self.angles[i])
-                    y = self.start_y + self.radii[i] * np.sin(self.angles[i])
+            for i in range(len(self.color_angles)):
+                for _ in range(10):
+                    x = self.start_x + self.radii[i] * np.cos(self.color_angles[i])
+                    y = self.start_y + self.radii[i] * np.sin(self.color_angles[i])
 
                     color = pygame.Color(0)
                     hue_variation = int(30 * np.sin(self.time + i))
-                    color.hsva = ((self.color_angle + hue_variation) % 360, 60, 80, 100)  # Reduced saturation and adjusted value for softer colors
+                    color.hsva = ((self.color_angles[i] + hue_variation) % 360, 60, 80, 100)
 
-                    circle_size = int(3 * self.thickness_factor * (1 + np.sin(self.time)))  # Dynamic circle size based on sine wave
+                    circle_size = int(3 * self.thickness_factor * (1 + np.sin(self.time)))
                     pygame.draw.circle(self.screen, color, (int(x), int(y)), circle_size)
 
-                    self.angles[i] += self.speeds[i]
-                    self.radii[i] += self.pulse_frequency * np.sin(self.time)  # Dynamic radius change based on sine wave
+                    self.color_angles[i] += self.speeds[i]
+                    oscillation = self.initial_radii[i] * 0.2 * np.sin(self.time)  # Oscillation of 20% of initial radius
+                    self.radii[i] = self.initial_radii[i] + oscillation
 
-                    # Reset radii if they exceed a threshold to keep them on screen
-                    if self.radii[i] > min(self.width, self.height) // 3:  # Adjusted threshold
-                        self.radii[i] = random.randint(20, min(self.width, self.height) // 6)
-                        self.speeds[i] = random.uniform(0.01, 0.04)
-
-                self.bg_hue += 0.5  # Slowly change the hue for the gradient background
-                self.time += 0.01  # Increment time for dynamic effects
-
+            self.bg_hue += 0.5
+            self.time += 0.01
 
         def update(self):
-            self.bg_pulse += 0.01  # Increment for background pulse
-
+            self.bg_pulse += 0.01
 
         def valmorphanize(self):
-            # Randomly choose to increase or decrease thickness
-            boost_or_reduce = random.choice([1.5, 0.7])  # < 1 to reduce, > 1 to boost
-
-            self.thickness_factor *= boost_or_reduce
-
-            # Add some constraints to keep thickness factor within reasonable limits
+            self.thickness_factor = random.choice([1.5, 0.7, 1])
             self.thickness_factor = max(min(self.thickness_factor, 2), 0.5)
-
-            # Keep radii within screen limits
-            self.radii = [min(radius, min(WIDTH, HEIGHT) / 3) for radius in self.radii]
-
-            # Occasionally add or remove circles for complexity
-            if random.random() < 0.1 and len(self.angles) < 7:
-                self.angles.append(random.uniform(0, 2 * np.pi))
-                self.radii.append(random.randint(40, 90))
-                self.speeds.append(random.uniform(0.02, 0.05))
-            elif random.random() < 0.1 and len(self.angles) > 3:
-                index_to_remove = random.randint(0, len(self.angles) - 1)
-                self.angles.pop(index_to_remove)
-                self.radii.pop(index_to_remove)
-                self.speeds.pop(index_to_remove)
-
-            # Randomize pulse direction
-            self.pulse_direction = random.choice([-1, 1])
-
-             # Randomize spirograph speeds
-            self.speeds = [random.uniform(0.01, 0.06) for _ in range(len(self.speeds))]
-
-            # Randomize starting positions
+            self.pulse_frequency = random.uniform(1, 5)
+            self.max_circles = random.randint(3, 7)
+            
+            while len(self.color_angles) < self.max_circles:
+                self.color_angles.append(random.uniform(0, 360))
+                new_radius = random.randint(20, min(self.width, self.height) // 6)
+                self.radii.append(new_radius)
+                self.initial_radii.append(new_radius)  # Update initial_radii
+                self.speeds.append(random.uniform(0.01, 0.04))
+                
+            while len(self.color_angles) > self.max_circles:
+                idx = random.randint(0, len(self.color_angles) - 1)
+                self.color_angles.pop(idx)
+                self.radii.pop(idx)
+                self.initial_radii.pop(idx)  # Update initial_radii
+                self.speeds.pop(idx)
+                
+            # Occasionally boost the radii to make the spirograph bigger
+            if random.random() < 0.5:  # 50% chance to boost the radii
+                boost_factor = random.uniform(1.1, 1.5)  # Boost by 10% to 50%
+                self.radii = [int(r * boost_factor) for r in self.radii]
+                
+            # Ensure radii don't exceed screen dimensions
+            self.radii = [min(r, min(self.width, self.height) // 4) for r in self.radii]
+            
             self.start_x = random.randint(self.width // 4, 3 * self.width // 4)
             self.start_y = random.randint(self.height // 4, 3 * self.height // 4)
 
