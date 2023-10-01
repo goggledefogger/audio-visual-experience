@@ -7,20 +7,21 @@ class AudioEngine:
     class BaseAudioMode:
         def __init__(self, audio_engine):
             self.audio_engine = audio_engine
+            self.scales = [
+                ["C", "D", "Eb", "F", "G", "Ab", "Bb"],  # Pentatonic
+            ]
+            self.scale = self.scales[0]
+            self.base_note_name = self.scale[0]  # Default to the first note of the scale
 
-        def generate_sound(self, zoom_level):
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
             raise NotImplementedError("Each audio mode must implement this method.")
 
-    # Default audio mode (as an example)
+    # Default audio mode
     class DefaultAudioMode(BaseAudioMode):
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
-            self.chord_intervals = [0, 4, 7]  # Major triad chord intervals
-
-        def generate_sound(self, zoom_level):
-            """Generate a tone based on the zoom level and apply an envelope."""
-            # Scales and modes for variation
-            scales = [
+            self.scales = [
                 ["C", "D", "E", "F", "G", "A", "B"],  # Major
                 ["C", "D", "Eb", "F", "G", "Ab", "Bb"],  # Natural Minor
                 ["C", "Db", "Eb", "E", "Gb", "Ab", "Bb"],  # Phrygian
@@ -31,7 +32,13 @@ class AudioEngine:
                 ["C", "D", "Eb", "F", "G", "Ab", "Bb"],  # Pentatonic
                 ["C", "Db", "E", "F", "Gb", "Ab", "Bb"]  # Locrian
             ]
-            self.scale = scales[int(zoom_level * len(scales)) % len(scales)]
+            self.scale = self.scales[0]  # Default to Major scale
+            self.chord_intervals = [0, 4, 7]  # Major triad chord intervals
+            self.base_note_name = "C"  # Default base note
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate a tone based on the zoom level and apply an envelope."""
+            self.scale = self.scales[int(zoom_level * len(self.scales)) % len(self.scales)]
 
             # Choose a random starting note
             note_index = np.random.choice(len(self.scale))
@@ -126,30 +133,57 @@ class AudioEngine:
     class PulsatingAudioMode(BaseAudioMode):
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
+            self.scales = [
+                ["C", "D", "Eb", "F", "G", "Ab", "Bb"],  # Natural Minor
+                ["C", "Db", "Eb", "E", "Gb", "Ab", "Bb"],  # Phrygian
+                ["C", "D", "E", "F#", "G", "A", "B"],  # Lydian
+            ]
+            self.scale = self.scales[0]  # Default to Minor scale
 
-        def generate_sound(self, zoom_level):
-            """Generate a pulsating tone based on the zoom level."""
-            base_frequency = 440.0  # A4 as a base frequency
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate an enhanced pulsating tone based on various visualization factors."""
+
+            # Dynamic base frequency based on zoom level and rotation angle
+            base_frequency = 220.0 + 220.0 * zoom_level + rotation_angle  # Vary with zoom and rotation
+
             t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
-            # Create a pulsating effect using a low-frequency sine wave as an amplitude modulator
-            modulator_frequency = 2.0 + 10.0 * zoom_level  # Increase pulsation speed with zoom level
-            modulator = 0.5 * (1.0 + np.sin(2 * np.pi * modulator_frequency * t))
+            # Pulsation effect influenced by color intensity
+            modulator_frequency = 2.0 + 10.0 * zoom_level + 5.0 * color_intensity
+            pulsation_depth = 0.5 + 0.5 * zoom_level
+            modulator = pulsation_depth * (1.0 + np.sin(2 * np.pi * modulator_frequency * t))
 
-            # Generate the base tone
+            # Base tone with harmonic overtones influenced by pattern density
             tone = np.sin(2 * np.pi * base_frequency * t)
+            harmonic1 = pattern_density * np.sin(2 * np.pi * 2 * base_frequency * t)
+            harmonic2 = (1 - pattern_density) * np.sin(2 * np.pi * 3 * base_frequency * t)
+            combined_tone = tone + harmonic1 + harmonic2
 
             # Apply the pulsating effect
-            pulsating_tone = tone * modulator
+            pulsating_tone = combined_tone * modulator
 
-            # Apply an envelope to the tone to avoid harsh starts/stops
+            # Random melodic patterns influenced by rotation angle
+            if np.random.rand() < 0.3 + 0.2 * (rotation_angle / 360):  # Increase chance with rotation
+                step = np.random.choice([-2, -1, 1, 2])
+                note_index = (self.scale.index(self.base_note_name) + step) % len(self.scale)
+                next_note_name = self.scale[note_index]  # Corrected line
+                next_frequency = pretty_midi.note_name_to_number(next_note_name + "4")
+                next_frequency = pretty_midi.note_number_to_hz(next_frequency)
+                next_tone = np.sin(next_frequency * t * 2 * np.pi)
+                pulsating_tone = np.concatenate([pulsating_tone, next_tone])
+
+            # Dynamic rhythmic patterns based on color intensity
+            if color_intensity > 0.7:  # Introduce rhythmic breaks for high color intensities
+                break_point = np.random.randint(len(t) // 2, len(t) - 100)
+                pulsating_tone[break_point:break_point+100] = 0
+
+            # Apply an envelope to the tone
             envelope = np.ones_like(pulsating_tone)
             envelope[:100] = np.linspace(0, 1, 100)
             envelope[-100:] = np.linspace(1, 0, 100)
             pulsating_tone_with_envelope = pulsating_tone * envelope
 
             return pulsating_tone_with_envelope
-
     def __init__(self, sample_rate=44100, duration=0.1):
         self.sample_rate = sample_rate
         self.duration = duration
@@ -162,8 +196,8 @@ class AudioEngine:
         frequency = pretty_midi.note_number_to_hz(midi_note)
         return frequency
 
-    def generate_tone_with_envelope(self, zoom_level):
-        return self.mode.generate_sound(zoom_level)
+    def generate_tone_with_envelope(self, zoom_level, rotation_angle=0, color_intensity=0.5, pattern_density=0.5):
+        return self.mode.generate_sound(zoom_level, rotation_angle, color_intensity, pattern_density)
 
     def generate_chord(self, base_frequency, octave_multiplier=1):
         """Generate a chord based on the base frequency and the current mode's scale."""

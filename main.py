@@ -95,7 +95,11 @@ def main():
 
         # Generate and play sound
         zoom_value = getattr(current_fractal, 'zoom', 1)  # Use zoom if available, else default to 1
-        sound = audio_engine.generate_tone_with_envelope(zoom_value)
+        rotation_angle = getattr(current_fractal, 'rotation_angle', 0)  # Default to 0 if not available
+        color_intensity = getattr(current_fractal, 'color_intensity', 0.5)  # Default to 0.5 if not available
+        pattern_density = getattr(current_fractal, 'pattern_density', 0.5)  # Default to 0.5 if not available
+
+        sound = audio_engine.generate_tone_with_envelope(zoom_value, rotation_angle, color_intensity, pattern_density)
         audio_engine.play_sound(sound)
 
         # Draw the button after the fractal
