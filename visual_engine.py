@@ -163,51 +163,6 @@ class VisualEngine:
             self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
 
 
-    class Spirograph:
-        def __init__(self, screen):
-            self.screen = screen
-            self.t = 0
-            self.R = 125
-            self.r = 75
-            self.l = 0.8
-            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-            self.bg_color = (0, 0, 0)
-            self.points = []
-
-        def draw(self):
-            self.screen.fill(self.bg_color)
-            for point in self.points:
-                pygame.draw.circle(self.screen, self.color, (int(point[0]), int(point[1])), 1)
-
-        def update(self):
-            x = (self.R + self.r) * np.cos(self.t) - self.l * self.r * np.cos((self.R + self.r) * self.t / self.r)
-            y = (self.R + self.r) * np.sin(self.t) - self.l * self.r * np.sin((self.R + self.r) * self.t / self.r)
-
-            # Translate the points for visualization
-            px = int(x + WIDTH / 2)
-            py = int(y + HEIGHT / 2)
-
-            self.points.append((px, py))
-            self.t += 0.05
-
-            if len(self.points) > 5000:  # Keep the last 5000 points for performance
-                self.points.pop(0)
-
-        def valmorphanize(self):
-            # Change the radius of the larger circle, R
-            self.R = random.uniform(100, 150)
-            # Change the radius of the smaller circle, r
-            self.r = random.uniform(50, 100)
-            # Change the l factor which affects the shape of the curve
-            self.l = random.uniform(0.5, 1.0)
-            # Generate a new random color
-            self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-            # Empty the list of drawn points
-            self.points.clear()
-            # Reset time parameter
-            self.t = 0
-
-
     class MultiSpirograph:
         def __init__(self, screen):
             self.screen = screen
@@ -882,54 +837,6 @@ class VisualEngine:
 
         def valmorphanize(self):
             self.valmorphanize_factor = np.random.choice([0.5, 1.5, 2.5])
-
-    class ArtisticCitySkyline:
-        def __init__(self, screen):
-            self.screen = screen
-            self.width, self.height = screen.get_size()
-            self.color = (220, 220, 220)
-            self.bg_color = (0, 0, 0)
-            self.buildings = []
-            self.generate_city_skyline()
-
-        def generate_city_skyline(self):
-            horizon = int(self.height * 0.75)
-            x = 0
-            while x < self.width:
-                building_width = np.random.randint(30, 100)
-                building_height = np.random.randint(50, self.height - horizon)
-                curve_height = np.random.randint(10, 30)
-                self.buildings.append((x, horizon, building_width, building_height, curve_height))
-                x += building_width
-
-        def draw(self):
-            self.screen.fill(self.bg_color)
-
-            # Draw buildings
-            for building in self.buildings:
-                x, horizon, width, height, curve_height = building
-                pygame.draw.rect(self.screen, self.color, (x, horizon - height, width, height))
-                pygame.draw.arc(self.screen, self.bg_color, (x, horizon - height - curve_height, width, curve_height*2), 0, np.pi, width//2)
-
-                # Draw randomized windows
-                for _ in range(np.random.randint(5, 20)):
-                    wx = x + np.random.randint(0, width - 5)
-                    wy = horizon - np.random.randint(0, height - 5)
-                    pygame.draw.rect(self.screen, (255, 255, 255), (wx, wy, 5, 5))
-
-            # Draw moon
-            pygame.draw.circle(self.screen, (255, 255, 200), (np.random.randint(50, self.width - 50), np.random.randint(50, int(self.height * 0.5))), np.random.randint(20, 50))
-
-            # Draw stars
-            for _ in range(100):
-                x = np.random.randint(0, self.width)
-                y = np.random.randint(0, int(self.height * 0.7))
-                pygame.draw.circle(self.screen, (255, 255, 255), (x, y), 1)
-
-            pygame.display.flip()
-
-        def update(self):
-            pass
 
     class LissajousCurve:
         def __init__(self, screen):
