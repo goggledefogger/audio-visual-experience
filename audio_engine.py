@@ -313,3 +313,113 @@ class AudioEngine:
             ethereal_tone_with_envelope = combined_tone * envelope
 
             return ethereal_tone_with_envelope
+    class MysticalForestMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate a mellow and vibey forest ambiance based on visual parameters."""
+
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Gentle Bird Chirps influenced by zoom_level
+            chirp_frequency = 1000.0 + 50.0 * np.sin(0.1 * np.pi * t)
+            bird_chirp = (0.02 + 0.01 * zoom_level) * np.sin(2 * np.pi * chirp_frequency * t)
+
+            # Soft Rustling Leaves influenced by color_intensity
+            rustle_intensity = 0.01 + 0.005 * color_intensity
+            leaf_rustle = rustle_intensity * np.random.randn(len(t))
+
+            # Distant Water Stream
+            stream_frequency = 40.0
+            water_stream = 0.02 * np.sin(2 * np.pi * stream_frequency * t)
+
+            # Gentle Wind Gusts influenced by rotation_angle
+            wind_gust = (0.01 + 0.005 * rotation_angle) * np.sin(0.05 * np.pi * t)
+
+            # Occasional Distant Owl Hoot influenced by pattern_density
+            owl_hoot_frequency = 400.0
+            owl_hoot = (0.005 + 0.0025 * pattern_density) * np.sin(2 * np.pi * owl_hoot_frequency * t)
+
+            # Combine all layers
+            forest_ambiance = bird_chirp + leaf_rustle + water_stream + wind_gust + owl_hoot
+
+            # Apply an envelope for smoothness
+            envelope = np.ones_like(forest_ambiance)
+            envelope[:1000] = np.linspace(0, 1, 1000)
+            envelope[-1000:] = np.linspace(1, 0, 1000)
+            forest_ambiance_with_envelope = forest_ambiance * envelope
+
+            return forest_ambiance_with_envelope
+
+    class DesertNightMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate a serene and mysterious desert night ambiance based on visual parameters."""
+
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Distant Wind influenced by zoom_level
+            wind_intensity = 0.01 + 0.005 * zoom_level
+            desert_wind = wind_intensity * np.sin(0.025 * np.pi * t)
+
+            # Soft Sand Movements influenced by rotation_angle
+            sand_movement_frequency = 5.0 + 2.5 * rotation_angle
+            sand_movement = 0.005 * np.sin(2 * np.pi * sand_movement_frequency * t)
+
+            # Night Insects influenced by color_intensity
+            insect_chirp_frequency = 450.0
+            insect_chirp = (0.005 + 0.0025 * color_intensity) * np.sin(2 * np.pi * insect_chirp_frequency * t)
+
+            # Distant Animal Calls influenced by pattern_density
+            animal_call_frequency = 300.0
+            animal_call = (0.0025 + 0.001 * pattern_density) * np.sin(2 * np.pi * animal_call_frequency * t)
+
+            # Combine all layers
+            desert_ambiance = desert_wind + sand_movement + insect_chirp + animal_call
+
+            # Apply an envelope for smoothness
+            envelope = np.ones_like(desert_ambiance)
+            envelope[:1000] = np.linspace(0, 1, 1000)
+            envelope[-1000:] = np.linspace(1, 0, 1000)
+            desert_ambiance_with_envelope = desert_ambiance * envelope
+
+            return desert_ambiance_with_envelope
+
+    class AlienPlanetMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate a mellow and mysterious alien planet ambiance based on visual parameters."""
+
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Alien Atmosphere influenced by zoom_level
+            atmosphere_depth = 40.0 + 10.0 * zoom_level
+            alien_atmosphere = 0.02 * np.sin(2 * np.pi * atmosphere_depth * t)
+
+            # Mysterious Echoes influenced by rotation_angle
+            echo_frequency = 5.0 + 2.5 * rotation_angle
+            mysterious_echo = 0.005 * np.sin(2 * np.pi * echo_frequency * t)
+
+            # Gentle Alien Flora influenced by color_intensity
+            flora_rustle_frequency = 450.0
+            alien_flora = (0.005 + 0.0025 * color_intensity) * np.sin(2 * np.pi * flora_rustle_frequency * t)
+
+            # Distant Alien Calls influenced by pattern_density
+            alien_call_frequency = 300.0
+            alien_call = (0.0025 + 0.001 * pattern_density) * np.sin(2 * np.pi * alien_call_frequency * t)
+
+            # Combine all layers
+            alien_ambiance = alien_atmosphere + mysterious_echo + alien_flora + alien_call
+
+            # Apply an envelope for smoothness
+            envelope = np.ones_like(alien_ambiance)
+            envelope[:1000] = np.linspace(0, 1, 1000)
+            envelope[-1000:] = np.linspace(1, 0, 1000)
+            alien_ambiance_with_envelope = alien_ambiance * envelope
+
+            return alien_ambiance_with_envelope
