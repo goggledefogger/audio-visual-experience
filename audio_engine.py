@@ -423,3 +423,78 @@ class AudioEngine:
             alien_ambiance_with_envelope = alien_ambiance * envelope
 
             return alien_ambiance_with_envelope
+    class RainSoundMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
+            self.melody_direction = 1  # 1 for ascending, -1 for descending
+            self.musical_intervals = [1, 4, 5, 8]  # Unison, Perfect Fourth, Perfect Fifth, Octave
+
+        def generate_rain_sound(self, zoom_level, rotation_angle):
+            """Generate a mellow rain sound effect with occasional bursts of intensity."""
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Base rain sound (white noise) with further reduced amplitude
+            rain_sound = 0.1 * np.random.randn(len(t))
+
+            # Use a sine wave for cyclic fading
+            fade_frequency = 0.5 + 0.1 * zoom_level
+            fade_amplitude = 0.4 + 0.1 * np.sin(2 * np.pi * rotation_angle)
+            fade_effect = fade_amplitude * np.sin(2 * np.pi * fade_frequency * t)
+
+            # Map the fade_effect from [-1, 1] to [0, 1]
+            fade_effect = 0.5 * (fade_effect + 1)
+
+            # Apply the fade effect to the rain sound
+            rain_sound_adjusted = rain_sound * fade_effect
+
+            # More subtle bursts of intensity
+            intensity_factor = np.random.rand()
+            if intensity_factor > 0.97:  # 3% chance to introduce a burst of intensity
+                burst_intensity = 0.8 + 0.2 * zoom_level
+                rain_sound_adjusted *= burst_intensity
+
+            return rain_sound_adjusted
+
+        def generate_melodic_tone(self, zoom_level, rotation_angle):
+            """Generate a melodic tone that changes based on visual parameters."""
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Base frequency influenced by zoom_level
+            frequency = 220 + 20 * (zoom_level - 0.5)
+
+            # Modulate the frequency using rotation_angle for variation
+            frequency_modulation = 10 * np.sin(2 * np.pi * 0.5 * rotation_angle * t)
+
+            # Generate the tone
+            tone = 0.3 * np.sin(2 * np.pi * (frequency + frequency_modulation) * t)
+
+            # Apply an envelope for smoothness
+            envelope = np.ones_like(tone)
+            envelope[:1000] = np.linspace(0, 1, 1000)
+            envelope[-1000:] = np.linspace(1, 0, 1000)
+            tone_with_envelope = tone * envelope
+
+            return tone_with_envelope
+
+        def generate_rhythmic_element(self, pattern_density):
+            """Generate a subtle rhythmic element based on pattern_density."""
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
+
+            # Base rhythm frequency influenced by pattern_density
+            rhythm_frequency = 2 + 0.5 * pattern_density
+
+            # Generate the rhythm
+            rhythm = 0.2 * np.sin(2 * np.pi * rhythm_frequency * t)
+
+            return rhythm
+
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate the combined sound of rain, melodic tones, and rhythmic elements."""
+            rain_sound = self.generate_rain_sound(zoom_level, rotation_angle)
+            melodic_tone = self.generate_melodic_tone(zoom_level, rotation_angle)
+            rhythmic_element = self.generate_rhythmic_element(pattern_density)
+
+            # Combine all sound layers
+            combined_sound = rain_sound + melodic_tone + rhythmic_element
+
+            return combined_sound
