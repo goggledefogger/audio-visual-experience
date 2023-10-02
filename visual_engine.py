@@ -1448,3 +1448,78 @@ class VisualEngine:
             self.draw_background(color_intensity)
             self.draw_trees(zoom_level, rotation_angle)
             self.draw_particles(pattern_density)
+    class Kaleidoscope:
+        def __init__(self, screen):
+            self.screen = screen
+            self.initialize_attributes()
+
+        def initialize_attributes(self):
+            self.num_segments = random.randint(6, 12)
+            self.rotation_angle = 0
+            self.global_rotation_speed = random.uniform(-0.02, 0.02)  # Increased rotation speed
+            self.base_segment_lengths = [random.randint(50, 250) for _ in range(self.num_segments)]
+            self.segment_lengths = self.base_segment_lengths.copy()
+            primary_hue = random.random()
+            self.segment_colors = [colorsys.hsv_to_rgb(primary_hue, random.uniform(0.5, 0.8), random.uniform(0.6, 0.9)) for _ in range(self.num_segments)]
+            self.segment_colors = [(int(c[0]*255), int(c[1]*255), int(c[2]*255)) for c in self.segment_colors]
+            self.center = (WIDTH // 2, HEIGHT // 2)
+            self.segment_opacities = [random.randint(50, 150) for _ in range(self.num_segments)]
+            self.opacity_changes = [random.choice([-1, 1]) for _ in range(self.num_segments)]
+            self.segment_widths = [random.randint(1, 5) for _ in range(self.num_segments)]
+            self.width_changes = [random.choice([-1, 1]) for _ in range(self.num_segments)]
+            self.start_points = [(self.center[0] + random.randint(-10, 10), self.center[1] + random.randint(-10, 10)) for _ in range(self.num_segments)]
+            self.growth_rates = [random.choice([-2, 2]) for _ in range(self.num_segments)]
+            self.segment_rotation_speeds = [random.uniform(-0.02, 0.02) for _ in range(self.num_segments)]
+
+        def get_audio_parameters(self):
+            avg_length = sum(self.segment_lengths) / len(self.segment_lengths)
+            normalized_length = avg_length / 150
+            normalized_rotation = (self.rotation_angle % (2 * np.pi)) / (2 * np.pi)
+            avg_color_intensity = sum([sum(color) for color in self.segment_colors]) / (3 * 255 * self.num_segments)
+            return {
+                'zoom_level': normalized_length,
+                'rotation_angle': normalized_rotation,
+                'color_intensity': avg_color_intensity,
+                'pattern_density': self.num_segments / 12
+            }
+
+        def draw(self):
+            # Overlay a semi-transparent black rectangle for fading effect
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 25))  # 25 is the alpha value, adjust for desired fade speed
+            self.screen.blit(overlay, (0, 0))
+
+            for i in range(self.num_segments):
+                angle = 2 * np.pi * i / self.num_segments + self.rotation_angle
+                modulation = random.uniform(0.9, 1.1)
+                end_x = self.start_points[i][0] + self.segment_lengths[i] * np.cos(angle) * modulation
+                end_y = self.start_points[i][1] + self.segment_lengths[i] * np.sin(angle) * modulation
+                control_point = ((self.start_points[i][0] + end_x) / 2, (self.start_points[i][1] + end_y) / 2)
+                segment_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                gradient_color = (self.segment_colors[i][0] // 2, self.segment_colors[i][1] // 2, self.segment_colors[i][2] // 2)
+                pygame.draw.aalines(segment_surface, (*gradient_color, self.segment_opacities[i] // 2), False, [self.start_points[i], control_point], self.segment_widths[i])
+                pygame.draw.aalines(segment_surface, (*self.segment_colors[i], self.segment_opacities[i]), False, [control_point, (end_x, end_y)], self.segment_widths[i])
+                self.screen.blit(segment_surface, (0, 0))
+
+        def update(self):
+            self.rotation_angle += 0.02
+            for i in range(self.num_segments):
+                self.segment_opacities[i] += self.opacity_changes[i]
+                self.segment_lengths[i] += self.growth_rates[i]
+                if self.segment_lengths[i] > 300 or self.segment_lengths[i] < 30:
+                    self.growth_rates[i] = -self.growth_rates[i]
+                hue, sat, val = colorsys.rgb_to_hsv(self.segment_colors[i][0]/255, self.segment_colors[i][1]/255, self.segment_colors[i][2]/255)
+                hue = (hue + 0.001) % 1.0
+                new_color = colorsys.hsv_to_rgb(hue, sat, val)
+                self.segment_colors[i] = (int(new_color[0]*255), int(new_color[1]*255), int(new_color[2]*255))
+                self.segment_opacities[i] += self.opacity_changes[i]
+                if self.segment_opacities[i] > 150 or self.segment_opacities[i] < 50:
+                    self.opacity_changes[i] = -self.opacity_changes[i]
+                self.segment_widths[i] += self.width_changes[i]
+                if self.segment_widths[i] > 5 or self.segment_widths[i] < 1:
+                    self.width_changes[i] = -self.width_changes[i]
+                self.rotation_angle += self.segment_rotation_speeds[i]
+            self.rotation_angle += self.global_rotation_speed
+
+        def valmorphanize(self):
+            self.initialize_attributes()
