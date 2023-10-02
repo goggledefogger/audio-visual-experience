@@ -15,6 +15,9 @@ class VisualEngine:
         """Default Valmorphanize effect. Can be overridden by subclasses."""
         pass
 
+    def clamp_color_value(value):
+        return max(0, min(255, value))
+
     # Class for a Basic Fractal
     class MandleBrot:
         def __init__(self, screen):
@@ -1162,19 +1165,24 @@ class VisualEngine:
             self.initialize_forest()
 
         def initialize_forest(self):
+            self.trees.clear()
+            self.particles.clear()
             for _ in range(self.num_trees):
                 x = random.randint(0, WIDTH)
                 y = random.randint(HEIGHT // 2, HEIGHT)
                 height = random.randint(50, 150)
                 branches = [random.uniform(0.6, 1.4) for _ in range(3)]
-                self.trees.append((x, y, height, branches))
+                growth_rate = random.uniform(0.1, 0.5)
+                self.trees.append([x, y, height, branches, growth_rate])
 
             for _ in range(self.num_particles):
                 x = random.randint(0, WIDTH)
                 y = random.randint(0, HEIGHT)
                 speed = random.uniform(0.5, 2)
                 size = random.randint(1, 3)
-                self.particles.append([x, y, speed, size])
+                oscillation_phase = random.uniform(0, 2 * math.pi)
+                lifespan = random.randint(50, 200)  # Particle lifespan in frames
+                self.particles.append([x, y, speed, size, oscillation_phase, lifespan])
 
         def draw_background(self, color_intensity):
             gradient = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -1184,36 +1192,55 @@ class VisualEngine:
             self.screen.blit(gradient, (0, 0))
 
         def draw_trees(self, zoom_level, rotation_angle):
-            for x, y, height, branches in self.trees:
+            for tree in self.trees:
+                x, y, height, branches, growth_rate = tree
                 adjusted_height = int(height * zoom_level)
-                tree_color = (int(self.tree_base_color[0] * zoom_level), int(self.tree_base_color[1] * zoom_level), int(self.tree_base_color[2] * zoom_level))
+                hue_variation = random.uniform(0.9, 1.1)
+                tree_color = (
+                    VisualEngine.clamp_color_value(int(self.tree_base_color[0] * hue_variation * zoom_level)),
+                    VisualEngine.clamp_color_value(int(self.tree_base_color[1] * zoom_level)),
+                    VisualEngine.clamp_color_value(int(self.tree_base_color[2] * zoom_level))
+                )
                 pygame.draw.line(self.screen, tree_color, (x, y), (x, y - adjusted_height), 2)
                 branch_length = adjusted_height // 3
                 for i, branch_factor in enumerate(branches):
-                    angle = rotation_angle + (math.pi / 6 * i * branch_factor)
+                    angle_variation = random.uniform(-0.1, 0.1)
+                    angle = rotation_angle + (math.pi / 6 * i * branch_factor) + angle_variation
                     end_x = x + branch_length * math.cos(angle)
                     end_y = y - (i + 1) * branch_length * math.sin(angle)
                     pygame.draw.line(self.screen, tree_color, (x, y - i * branch_length), (end_x, end_y), 2)
 
         def draw_particles(self, pattern_density):
             for particle in self.particles:
-                x, y, speed, size = particle
-                pygame.draw.circle(self.screen, self.particle_color, (int(x), int(y)), size)
-                particle[1] -= speed
-                particle[0] += random.uniform(-0.5, 0.5)  # Slight horizontal movement
-                if y < 0:
-                    particle[1] = HEIGHT
-                    particle[0] = random.randint(0, WIDTH)
-                    particle[2] = random.uniform(0.5, 2 * pattern_density)
-                    particle[3] = random.randint(1, 3)
+                x, y, speed, size, oscillation_phase, lifespan = particle
+                alpha = VisualEngine.clamp_color_value(int(255 * (1 - y / HEIGHT)))
+                glow = pygame.Surface((size*3, size*3), pygame.SRCALPHA)
+                pygame.draw.circle(glow, (*self.particle_color, alpha), (size*1.5, size*1.5), size)
+                self.screen.blit(glow, (int(x - size*1.5), int(y - size*1.5)))
+
+        def update(self):
+            for tree in self.trees:
+                tree[2] += tree[4]  # Increase the height of the tree subtly
+
+            for particle in self.particles:
+                x, y, speed, size, oscillation_phase, lifespan = particle
+                y -= speed
+                x += math.sin(oscillation_phase) * 2  # Oscillation in horizontal movement
+                oscillation_phase += 0.1
+                lifespan -= 1
+                if lifespan <= 0 or y < 0:
+                    y = HEIGHT
+                    x = random.randint(0, WIDTH)
+                    lifespan = random.randint(50, 200)
+                particle[0], particle[1], particle[4], particle[5] = x, y, oscillation_phase, lifespan
+
+        def valmorphanize(self):
+            self.num_particles = 50  # Reduce the number of particles
+            for tree in self.trees:
+                tree[2] = random.randint(50, 100)  # Reset tree heights
+            self.initialize_forest()
 
         def draw(self, zoom_level=1, rotation_angle=0, color_intensity=0, pattern_density=0):
             self.draw_background(color_intensity)
             self.draw_trees(zoom_level, rotation_angle)
             self.draw_particles(pattern_density)
-
-        def update(self):
-            pass
-
-        def valmorphanize(self):
-            self.initialize_forest()
