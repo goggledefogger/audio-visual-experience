@@ -49,3 +49,35 @@ class MuteButton(Button):
 
         self.text = "Unmute" if self.muted else "Mute"
         super().draw(screen)
+
+class VolumeSlider:
+    def __init__(self, x, y, width, height, audio_engine, color=(200, 200, 200), knob_color=(50, 50, 50)):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.audio_engine = audio_engine
+        self.color = color
+        self.knob_color = knob_color
+        self.knob_width = 10
+        self.knob_pos = self.x + (self.width - self.knob_width) * 0.2  # Start at 50% volume
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, self.knob_color, (self.knob_pos, self.y, self.knob_width, self.height))
+
+    def is_over(self, pos):
+        return self.x < pos[0] < self.x + self.width and self.y < pos[1] < self.y + self.height
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and self.is_over(pygame.mouse.get_pos()):
+            self.knob_pos = event.pos[0] - self.knob_width / 2
+            self.update_volume()
+
+        elif event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0] and self.is_over(pygame.mouse.get_pos()):
+            self.knob_pos = event.pos[0] - self.knob_width / 2
+            self.update_volume()
+
+    def update_volume(self):
+        volume_percentage = (self.knob_pos - self.x) / (self.width - self.knob_width)
+        self.audio_engine.set_volume(volume_percentage)

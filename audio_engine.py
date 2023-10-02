@@ -3,11 +3,20 @@ import pygame
 import pretty_midi
 
 class AudioEngine:
-    def __init__(self, sample_rate=44100, duration=0.1):
+    def __init__(self, sample_rate=44100, duration=0.1, current_volume=0.2):
         self.sample_rate = sample_rate
         self.duration = duration
         self.muted = False
         self.mode = AudioEngine.DefaultAudioMode(self)  # Set the default mode
+        self.current_volume = current_volume
+
+    def set_volume(self, volume):
+        if volume < 0:
+            volume = 0.0
+        if volume > 1:
+            volume = 1.0
+        self.current_volume = volume
+        pygame.mixer.music.set_volume(volume)
 
     def note_to_frequency(self, note_name):
         """Convert a note name (e.g., 'C4') to its frequency in Hz."""
@@ -45,6 +54,7 @@ class AudioEngine:
         # Ensure the array is C-contiguous
         contiguous_array = np.ascontiguousarray(stereo_sound)
         sound = pygame.sndarray.make_sound(np.int16(contiguous_array * 32767))
+        sound.set_volume(self.current_volume)
         sound.play()
 
     def mute(self):
