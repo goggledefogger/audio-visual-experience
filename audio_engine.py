@@ -3,6 +3,57 @@ import pygame
 import pretty_midi
 
 class AudioEngine:
+    def __init__(self, sample_rate=44100, duration=0.1):
+        self.sample_rate = sample_rate
+        self.duration = duration
+        self.muted = False
+        self.mode = AudioEngine.DefaultAudioMode(self)  # Set the default mode
+
+    def note_to_frequency(self, note_name):
+        """Convert a note name (e.g., 'C4') to its frequency in Hz."""
+        midi_note = pretty_midi.note_name_to_number(note_name)
+        frequency = pretty_midi.note_number_to_hz(midi_note)
+        return frequency
+
+    def generate_tone_with_envelope(self, zoom_level, rotation_angle=0, color_intensity=0.5, pattern_density=0.5):
+        return self.mode.generate_sound(zoom_level, rotation_angle, color_intensity, pattern_density)
+
+    def generate_chord(self, base_frequency, octave_multiplier=1):
+        """Generate a chord based on the base frequency and the current mode's scale."""
+        base_note_index = self.mode.scale.index(self.mode.base_note_name)
+        chord_indices = [base_note_index] + [base_note_index + i for i in self.mode.chord_intervals]
+        chord_frequencies = [base_frequency * (2 ** (i / 12)) for i in chord_indices]
+        return [freq * octave_multiplier for freq in chord_frequencies]
+
+    def generate_melodic_pattern(self, octave_multiplier, length=4):
+        # Start from base note
+        start_index = self.mode.scale.index(self.mode.base_note_name)
+        # Create a sequence of "length" notes climbing the scale from the base note
+        pattern_indices = [(start_index + i) % len(self.mode.scale) for i in range(length)]
+        # Convert note names to frequencies
+        pattern_frequencies = [pretty_midi.note_name_to_number(self.mode.scale[i] + str(octave_multiplier)) for i in pattern_indices]
+        pattern_frequencies = [pretty_midi.note_number_to_hz(freq) for freq in pattern_frequencies]
+        return pattern_frequencies
+
+    def play_sound(self, sound_array):
+        if self.muted:
+            return
+
+        """Play a sound from a numpy array."""
+        # Convert mono sound to stereo
+        stereo_sound = np.vstack([sound_array, sound_array]).T
+        # Ensure the array is C-contiguous
+        contiguous_array = np.ascontiguousarray(stereo_sound)
+        sound = pygame.sndarray.make_sound(np.int16(contiguous_array * 32767))
+        sound.play()
+
+    def mute(self):
+        self.muted = True
+
+    def unmute(self):
+        self.muted = False
+
+
     # Base class for audio modes
     class BaseAudioMode:
         def __init__(self, audio_engine):
@@ -215,53 +266,50 @@ class AudioEngine:
 
             return combined_tone_with_envelope
 
+    class EtherealAmbientMode(BaseAudioMode):
+        def __init__(self, audio_engine):
+            super().__init__(audio_engine)
 
-    def __init__(self, sample_rate=44100, duration=0.1):
-        self.sample_rate = sample_rate
-        self.duration = duration
-        self.muted = False
-        self.mode = AudioEngine.DefaultAudioMode(self)  # Set the default mode
+        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+            """Generate a multi-layered, minimalistic, and calming tone."""
 
-    def note_to_frequency(self, note_name):
-        """Convert a note name (e.g., 'C4') to its frequency in Hz."""
-        midi_note = pretty_midi.note_name_to_number(note_name)
-        frequency = pretty_midi.note_number_to_hz(midi_note)
-        return frequency
+            t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
-    def generate_tone_with_envelope(self, zoom_level, rotation_angle=0, color_intensity=0.5, pattern_density=0.5):
-        return self.mode.generate_sound(zoom_level, rotation_angle, color_intensity, pattern_density)
+            # Dynamic Drone Layer with breathing effect
+            drone_frequency = 40.0
+            breathing_effect = 0.1 * np.sin(0.5 * np.pi * t)
+            drone = (0.2 + breathing_effect) * np.sin(2 * np.pi * drone_frequency * t)
 
-    def generate_chord(self, base_frequency, octave_multiplier=1):
-        """Generate a chord based on the base frequency and the current mode's scale."""
-        base_note_index = self.mode.scale.index(self.mode.base_note_name)
-        chord_indices = [base_note_index] + [base_note_index + i for i in self.mode.chord_intervals]
-        chord_frequencies = [base_frequency * (2 ** (i / 12)) for i in chord_indices]
-        return [freq * octave_multiplier for freq in chord_frequencies]
+            # Melodic Layer with occasional random pitches
+            melodic_frequency = drone_frequency * (1 + zoom_level)
+            if np.random.rand() < 0.1:
+                melodic_frequency += np.random.uniform(-5, 5)
+            melodic = 0.1 * np.sin(2 * np.pi * melodic_frequency * t)
 
-    def generate_melodic_pattern(self, octave_multiplier, length=4):
-        # Start from base note
-        start_index = self.mode.scale.index(self.mode.base_note_name)
-        # Create a sequence of "length" notes climbing the scale from the base note
-        pattern_indices = [(start_index + i) % len(self.mode.scale) for i in range(length)]
-        # Convert note names to frequencies
-        pattern_frequencies = [pretty_midi.note_name_to_number(self.mode.scale[i] + str(octave_multiplier)) for i in pattern_indices]
-        pattern_frequencies = [pretty_midi.note_number_to_hz(freq) for freq in pattern_frequencies]
-        return pattern_frequencies
+            # Echo Effect for Melodic Layer
+            delay = int(0.5 * self.audio_engine.sample_rate)
+            echo = np.roll(melodic, delay) * 0.6
+            melodic += echo
 
-    def play_sound(self, sound_array):
-        if self.muted:
-            return
+            # Harmonic Overtones with swelling effect
+            harmonics = [drone_frequency * (i*3+1) for i in range(3)]
+            swell_effect = 0.05 * np.sin(0.2 * np.pi * t)
+            harmonic_tones = sum([(0.05 + swell_effect) * np.sin(2 * np.pi * freq * t) for freq in harmonics])
 
-        """Play a sound from a numpy array."""
-        # Convert mono sound to stereo
-        stereo_sound = np.vstack([sound_array, sound_array]).T
-        # Ensure the array is C-contiguous
-        contiguous_array = np.ascontiguousarray(stereo_sound)
-        sound = pygame.sndarray.make_sound(np.int16(contiguous_array * 32767))
-        sound.play()
+            # Random Ambient Textures
+            random_texture = np.interp(t, np.linspace(0, self.audio_engine.duration, 10), np.random.uniform(-0.05, 0.05, 10))
 
-    def mute(self):
-        self.muted = True
+            # Ambient Noise
+            noise_intensity = 0.01
+            white_noise = noise_intensity * np.random.randn(len(t))
 
-    def unmute(self):
-        self.muted = False
+            # Combine all layers
+            combined_tone = drone + melodic + harmonic_tones + random_texture + white_noise
+
+            # Apply an envelope for smoothness
+            envelope = np.ones_like(combined_tone)
+            envelope[:1000] = np.linspace(0, 1, 1000)
+            envelope[-1000:] = np.linspace(1, 0, 1000)
+            ethereal_tone_with_envelope = combined_tone * envelope
+
+            return ethereal_tone_with_envelope
