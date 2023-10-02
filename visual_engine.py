@@ -1083,40 +1083,68 @@ class VisualEngine:
             self.reset_fractal()
 
         def reset_fractal(self):
-            self.screen.fill((0, 0, 0))
-            self.radius = random.randint(50, 200)
+            self.center = (WIDTH // 2, HEIGHT // 2)
+            self.radius = 50
             self.angle = 0
-            self.angle_step = 0.1
-            self.line_color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-            self.layers_drawn = 0
-            self.center = (WIDTH // 2, HEIGHT // 2) if random.random() > 0.2 else (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+            self.rotation_angle = 0
+            self.circle_rotation_angle = 0
+            self.arc_length = math.pi / 6
+            self.line_color = (235, 235, 235)  # Light color for lines
+            self.num_symmetrical_lines = 24
+            self.bg_color = (10, 10, 10)  # Very dark background color
+            self.petals_radius = 10
+            self.line_width = 1
+
+        def draw_groovy_background(self):
+            gradient_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            gradient_surface.fill((*self.bg_color, 15))
+            self.screen.blit(gradient_surface, (0, 0))
+
+        def draw_centered_petals(self):
+            for i in range(self.num_symmetrical_lines):
+                angle_offset = (2 * math.pi / self.num_symmetrical_lines) * i
+                end_pos = (
+                    self.center[0] + self.petals_radius * math.cos(self.angle + angle_offset + self.rotation_angle),
+                    self.center[1] + self.petals_radius * math.sin(self.angle + angle_offset + self.rotation_angle)
+                )
+                pygame.draw.line(self.screen, self.line_color, self.center, end_pos, self.line_width)
+            self.petals_radius += 2
+            if self.petals_radius > WIDTH // 4:
+                self.petals_radius = 10
+
+        def draw_rotating_circles(self):
+            for i in range(self.num_symmetrical_lines):
+                angle_offset = (2 * math.pi / self.num_symmetrical_lines) * i
+                start_pos = (
+                    self.center[0] + self.radius * math.cos(self.angle + angle_offset + self.rotation_angle),
+                    self.center[1] + self.radius * math.sin(self.angle + angle_offset + self.rotation_angle)
+                )
+                end_pos = (
+                    self.center[0] + self.radius * math.cos(self.angle + angle_offset + self.rotation_angle + self.arc_length),
+                    self.center[1] + self.radius * math.sin(self.angle + angle_offset + self.rotation_angle + self.arc_length)
+                )
+                pygame.draw.line(self.screen, self.line_color, start_pos, end_pos, self.line_width)
 
         def draw(self):
-            x = self.center[0] + self.radius * math.cos(self.angle)
-            y = self.center[1] + self.radius * math.sin(self.angle)
-            line_thickness = int(3 * (1 + math.sin(self.angle * 5)))  # Varying thickness
-            pygame.draw.line(self.screen, self.line_color, self.center, (x, y), line_thickness)
+            self.draw_groovy_background()
+            self.draw_rotating_circles()
+            self.draw_centered_petals()
+            self.radius += 0.5
+            self.rotation_angle += 0.02
+            self.circle_rotation_angle += 0.01
+            self.arc_length += 0.001
+            self.line_width = 1 + int(self.radius) % 3  # Varying line width
+            if self.arc_length > math.pi / 3 or self.arc_length < math.pi / 6:
+                self.arc_length = math.pi / 6
+            if self.radius > WIDTH // 2:
+                self.reset_fractal()
 
-            # Occasionally draw arcs and curves
-            if random.random() > 0.95:
-                arc_radius = random.randint(10, 50)
-                start_angle = self.angle
-                stop_angle = self.angle + random.uniform(0.2, 1.5)
-                pygame.draw.arc(self.screen, self.line_color, (x - arc_radius, y - arc_radius, 2 * arc_radius, 2 * arc_radius), start_angle, stop_angle, line_thickness)
-
-            self.angle += self.angle_step
-
-            if self.angle >= 2 * math.pi:
-                self.angle = 0
-                self.layers_drawn += 1
-                self.radius = random.randint(50, 200)
-                self.line_color = ((self.line_color[0] + 50) % 255, (self.line_color[1] + 50) % 255, (self.line_color[2] + 50) % 255)  # Color transition
-
-                if self.layers_drawn >= 5:
-                    self.reset_fractal()
 
         def update(self):
-            pass
+            self.line_color = ((self.line_color[0] + 1) % 230, (self.line_color[1] + 1) % 230, (self.line_color[2] + 1) % 230)
 
         def valmorphanize(self):
+            self.radius = 50
+            self.line_color = (random.randint(180, 220), random.randint(180, 220), random.randint(180, 220))
+            self.angle_step = 0.0005
             self.reset_fractal()
