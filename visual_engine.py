@@ -1148,3 +1148,72 @@ class VisualEngine:
             self.line_color = (random.randint(180, 220), random.randint(180, 220), random.randint(180, 220))
             self.angle_step = 0.0005
             self.reset_fractal()
+
+    class BioluminescentForest:
+        def __init__(self, screen):
+            self.screen = screen
+            self.bg_color = (10, 10, 10)
+            self.tree_base_color = (50, 255, 50)
+            self.particle_color = (255, 255, 255)
+            self.num_trees = 10
+            self.num_particles = 100
+            self.trees = []
+            self.particles = []
+            self.initialize_forest()
+
+        def initialize_forest(self):
+            for _ in range(self.num_trees):
+                x = random.randint(0, WIDTH)
+                y = random.randint(HEIGHT // 2, HEIGHT)
+                height = random.randint(50, 150)
+                branches = [random.uniform(0.6, 1.4) for _ in range(3)]
+                self.trees.append((x, y, height, branches))
+
+            for _ in range(self.num_particles):
+                x = random.randint(0, WIDTH)
+                y = random.randint(0, HEIGHT)
+                speed = random.uniform(0.5, 2)
+                size = random.randint(1, 3)
+                self.particles.append([x, y, speed, size])
+
+        def draw_background(self, color_intensity):
+            gradient = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            for i in range(HEIGHT):
+                alpha = int(255 * (i / HEIGHT) * color_intensity)
+                gradient.fill((self.bg_color[0], self.bg_color[1], self.bg_color[2], alpha), rect=(0, i, WIDTH, 1))
+            self.screen.blit(gradient, (0, 0))
+
+        def draw_trees(self, zoom_level, rotation_angle):
+            for x, y, height, branches in self.trees:
+                adjusted_height = int(height * zoom_level)
+                tree_color = (int(self.tree_base_color[0] * zoom_level), int(self.tree_base_color[1] * zoom_level), int(self.tree_base_color[2] * zoom_level))
+                pygame.draw.line(self.screen, tree_color, (x, y), (x, y - adjusted_height), 2)
+                branch_length = adjusted_height // 3
+                for i, branch_factor in enumerate(branches):
+                    angle = rotation_angle + (math.pi / 6 * i * branch_factor)
+                    end_x = x + branch_length * math.cos(angle)
+                    end_y = y - (i + 1) * branch_length * math.sin(angle)
+                    pygame.draw.line(self.screen, tree_color, (x, y - i * branch_length), (end_x, end_y), 2)
+
+        def draw_particles(self, pattern_density):
+            for particle in self.particles:
+                x, y, speed, size = particle
+                pygame.draw.circle(self.screen, self.particle_color, (int(x), int(y)), size)
+                particle[1] -= speed
+                particle[0] += random.uniform(-0.5, 0.5)  # Slight horizontal movement
+                if y < 0:
+                    particle[1] = HEIGHT
+                    particle[0] = random.randint(0, WIDTH)
+                    particle[2] = random.uniform(0.5, 2 * pattern_density)
+                    particle[3] = random.randint(1, 3)
+
+        def draw(self, zoom_level=1, rotation_angle=0, color_intensity=0, pattern_density=0):
+            self.draw_background(color_intensity)
+            self.draw_trees(zoom_level, rotation_angle)
+            self.draw_particles(pattern_density)
+
+        def update(self):
+            pass
+
+        def valmorphanize(self):
+            self.initialize_forest()
