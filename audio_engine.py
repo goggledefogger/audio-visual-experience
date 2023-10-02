@@ -15,8 +15,8 @@ class AudioEngine:
         frequency = pretty_midi.note_number_to_hz(midi_note)
         return frequency
 
-    def generate_tone_with_envelope(self, zoom_level, rotation_angle=0, color_intensity=0.5, pattern_density=0.5):
-        return self.mode.generate_sound(zoom_level, rotation_angle, color_intensity, pattern_density)
+    def generate_tone_with_envelope(self, audio_parameters):
+        return self.mode.generate_sound(**audio_parameters)
 
     def generate_chord(self, base_frequency, octave_multiplier=1):
         """Generate a chord based on the base frequency and the current mode's scale."""
@@ -56,6 +56,15 @@ class AudioEngine:
 
     # Base class for audio modes
     class BaseAudioMode:
+        DEFAULTS = {
+            'zoom_level': 1.0,
+            'rotation_angle': 0.0,
+            'color_intensity': 0.5,
+            'pattern_density': 0.5,
+            'pan_x': 0,
+            'pan_y': 0
+        }
+
         def __init__(self, audio_engine):
             self.audio_engine = audio_engine
             self.scales = [
@@ -64,8 +73,7 @@ class AudioEngine:
             self.scale = self.scales[0]
             self.base_note_name = self.scale[0]  # Default to the first note of the scale
 
-
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             raise NotImplementedError("Each audio mode must implement this method.")
 
     # Default audio mode
@@ -87,7 +95,9 @@ class AudioEngine:
             self.chord_intervals = [0, 4, 7]  # Major triad chord intervals
             self.base_note_name = "C"  # Default base note
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
+            # Extract the parameters you care about
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])
             """Generate a tone based on the zoom level and apply an envelope."""
             self.scale = self.scales[int(zoom_level * len(self.scales)) % len(self.scales)]
 
@@ -99,7 +109,6 @@ class AudioEngine:
             octave = np.random.choice(["3", "4", "5"])
             # Randomly choose an octave multiplier
             octave_multiplier = np.random.choice([1, 2, 4])
-
 
             # Convert base note to frequency
             base_frequency = pretty_midi.note_name_to_number(base_note_name + octave)
@@ -183,8 +192,13 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate an enhanced pulsating tone based on various visualization factors."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            color_intensity = kwargs.get('color_intensity', self.DEFAULTS['color_intensity'])
+            pattern_density = kwargs.get('pattern_density', self.DEFAULTS['pattern_density'])
 
             # Dynamic base frequency based on zoom level and rotation angle
             base_frequency = 220.0 + 220.0 * zoom_level + rotation_angle  # Vary with zoom and rotation
@@ -222,8 +236,12 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate an ambient neuro-inspired tone based on visualization factors."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            color_intensity = kwargs.get('color_intensity', self.DEFAULTS['color_intensity'])
 
             t = np.linspace(0, self.audio_engine.duration + 1.5, int(self.audio_engine.sample_rate * (self.audio_engine.duration + 1.5)), False)
 
@@ -270,8 +288,10 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate a multi-layered, minimalistic, and calming tone."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
 
             t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
@@ -317,8 +337,13 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate a mellow and vibey forest ambiance based on visual parameters."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            color_intensity = kwargs.get('color_intensity', self.DEFAULTS['color_intensity'])
+            pattern_density = kwargs.get('pattern_density', self.DEFAULTS['pattern_density'])
 
             t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
@@ -356,8 +381,13 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate a serene and mysterious desert night ambiance based on visual parameters."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            color_intensity = kwargs.get('color_intensity', self.DEFAULTS['color_intensity'])
+            pattern_density = kwargs.get('pattern_density', self.DEFAULTS['pattern_density'])
 
             t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
@@ -392,8 +422,13 @@ class AudioEngine:
         def __init__(self, audio_engine):
             super().__init__(audio_engine)
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
             """Generate a mellow and mysterious alien planet ambiance based on visual parameters."""
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])  # Replace default_value with a suitable default
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            color_intensity = kwargs.get('color_intensity', self.DEFAULTS['color_intensity'])
+            pattern_density = kwargs.get('pattern_density', self.DEFAULTS['pattern_density'])
 
             t = np.linspace(0, self.audio_engine.duration, int(self.audio_engine.sample_rate * self.audio_engine.duration), False)
 
@@ -488,7 +523,12 @@ class AudioEngine:
 
             return rhythm
 
-        def generate_sound(self, zoom_level, rotation_angle, color_intensity, pattern_density):
+        def generate_sound(self, **kwargs):
+
+            zoom_level = kwargs.get('zoom_level', self.DEFAULTS['zoom_level'])
+            rotation_angle = kwargs.get('rotation_angle', self.DEFAULTS['rotation_angle'])
+            pattern_density = kwargs.get('pattern_density', self.DEFAULTS['pattern_density'])
+
             """Generate the combined sound of rain, melodic tones, and rhythmic elements."""
             rain_sound = self.generate_rain_sound(zoom_level, rotation_angle)
             melodic_tone = self.generate_melodic_tone(zoom_level, rotation_angle)

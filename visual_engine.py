@@ -18,6 +18,17 @@ class VisualEngine:
     def clamp_color_value(value):
         return max(0, min(255, value))
 
+    def get_audio_parameters(self):
+        """Default audio parameters. Can be overridden by subclasses."""
+        return {
+            "zoom_level": 1,
+            "pan_x": 0,
+            "pan_y": 0,
+            "rotation_angle": 0,
+            "color_intensity": 1,
+            "pattern_density": 1
+        }
+
     # Class for a Basic Fractal
     class MandleBrot:
         def __init__(self, screen):
@@ -25,6 +36,13 @@ class VisualEngine:
             self.zoom = random.uniform(0.8, 1.2)
             self.pan_x = random.uniform(-0.5, 0.5)
             self.pan_y = random.uniform(-0.5, 0.5)
+
+        def get_audio_parameters(self):
+            return {
+                "zoom_level": self.zoom,
+                "pan_x": self.pan_x,
+                "pan_y": self.pan_y
+            }
 
         def draw(self):
             """Draw the fractal on the screen using numpy for faster computation."""
@@ -70,6 +88,26 @@ class VisualEngine:
         def __init__(self, screen):
             self.screen = screen
             self.reset_fractal()
+
+        def get_audio_parameters(self):
+            # Calculate the average distance of vertices from the center
+            avg_distance = sum([np.sqrt((vertex[0] - WIDTH // 2)**2 + (vertex[1] - HEIGHT // 2)**2) for vertex in self.vertices]) / 3
+            normalized_distance = avg_distance / (np.sqrt(WIDTH**2 + HEIGHT**2) / 2)
+
+            # Calculate the average RGB value for color and background color
+            avg_color_intensity = sum(self.color) / (3 * 255)
+            avg_bg_color_intensity = sum(self.bg_color) / (3 * 60)  # Assuming max value of 60 for bg_color
+
+            # Normalize points drawn
+            normalized_points = self.points_drawn / 1000000  # Assuming a max of 1 million points for normalization
+
+            return {
+                'zoom_level': normalized_distance,
+                'color_intensity': avg_color_intensity,
+                'pattern_density': normalized_points,
+                'bg_color_intensity': avg_bg_color_intensity
+            }
+
 
         def reset_fractal(self):
             self.screen.fill((0, 0, 0))  # Clear the screen
@@ -131,6 +169,17 @@ class VisualEngine:
             self.bg_hue = random.random()
             self.spirographs = [self._create_spirograph() for _ in range(3)]  # Create 3 spirographs
 
+        def get_audio_parameters(self):
+            avg_R = sum([spiro["R"] for spiro in self.spirographs]) / len(self.spirographs)
+            avg_r = sum([spiro["r"] for spiro in self.spirographs]) / len(self.spirographs)
+            avg_l = sum([spiro["l"] for spiro in self.spirographs]) / len(self.spirographs)
+            return {
+                "zoom_level": avg_R / 150,  # Normalize to [0, 1]
+                "rotation_angle": self.t,
+                "color_intensity": self.bg_hue,
+                "pattern_density": avg_r / 125  # Normalize to [0, 1]
+            }
+
         def _create_spirograph(self):
             R = random.randint(50, 150)
             r = random.randint(25, 125)
@@ -183,7 +232,6 @@ class VisualEngine:
             # Randomize background hue
             self.bg_hue = random.random()
 
-
     class DragonCurve:
         def __init__(self, screen):
             self.screen = screen
@@ -199,6 +247,27 @@ class VisualEngine:
             self.current_step = 0  # Current step in the animation
             self.color_gradient = [(255, i, 255 - i) for i in range(256)]
             self.speed_modulation_factor = 10000
+
+        def get_audio_parameters(self):
+            # Calculate the average RGB value from the color gradient
+            avg_r = sum([color[0] for color in self.color_gradient]) / 256
+            avg_g = sum([color[1] for color in self.color_gradient]) / 256
+            avg_b = sum([color[2] for color in self.color_gradient]) / 256
+            avg_color_intensity = (avg_r + avg_g + avg_b) / (3 * 255)
+
+            # Normalize other parameters to a range of [0, 1]
+            normalized_iterations = self.iterations / 20  # Assuming a max of 20 iterations
+            normalized_angle = (self.angle % 360) / 360
+            normalized_length = self.length / 10  # Assuming a max length of 10
+            normalized_speed_modulation = (self.speed_modulation_factor - 7000) / (15000 - 7000)
+
+            return {
+                'zoom_level': normalized_iterations,
+                'rotation_angle': normalized_angle,
+                'color_intensity': avg_color_intensity,
+                'pattern_density': normalized_length,
+                'speed_modulation': normalized_speed_modulation
+            }
 
         def _generate_commands(self):
             result = self.axiom
@@ -270,6 +339,18 @@ class VisualEngine:
             self.start_x = self.width // 2
             self.start_y = self.height // 2
             self.bg_pulse = 0
+
+        def get_audio_parameters(self):
+            avg_color_angle = sum(self.color_angles) / len(self.color_angles) / 360
+            avg_radius = sum(self.radii) / len(self.radii) / (min(self.width, self.height) // 6)
+            avg_speed = sum(self.speeds) / len(self.speeds) / 0.04
+
+            return {
+                'zoom_level': avg_radius,
+                'color_intensity': avg_color_angle,
+                'pattern_density': self.max_circles / 7,  # Normalize by max possible circles
+                'rotation_speed': avg_speed
+            }
 
         def draw_gradient_background(self):
             avg_hue = sum(self.color_angles) / len(self.color_angles)
@@ -348,6 +429,16 @@ class VisualEngine:
             self.bg_color1 = pygame.Color(255, 255, 255)
             self.bg_color2 = pygame.Color(200, 200, 255)
 
+        def get_audio_parameters(self):
+            avg_bg_color_intensity = (sum(self.bg_color1) + sum(self.bg_color2)) / (2 * 3 * 255)
+
+            return {
+                'zoom_level': 1,  # No zoom for PointillismPattern
+                'color_intensity': avg_bg_color_intensity,
+                'pattern_density': self.max_dots / 1000,  # Normalize by max possible dots
+                'rotation_angle': 0  # No rotation for PointillismPattern
+            }
+
         def draw(self):
             # Smooth background color transition
             blend = (np.sin(self.time) + 1) / 2  # Oscillates between 0 and 1
@@ -413,6 +504,16 @@ class VisualEngine:
             self.bg_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(4)]
             self.valmorphanize_duration = 0
             self.original_speed_multiplier = 1
+
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': self.base_hue,
+                'zoom_level': self.zoom_factor,
+                'pan_x': self.pan_speed_x,
+                'pan_y': self.pan_speed_y,
+                'rotation_angle': 0,  # No rotation in this class
+                'pattern_density': 1  # Default density
+            }
 
         def generate_palette(self):
             palette = []
@@ -499,6 +600,16 @@ class VisualEngine:
             self.direction = 1  # 1 for outward, -1 for inward
             self.speed_boost = 1
 
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': 1,  # Default color intensity
+                'zoom_level': self.speed_boost,
+                'pan_x': 0,  # No panning in this class
+                'pan_y': 0,  # No panning in this class
+                'rotation_angle': 0,  # No rotation in this class
+                'pattern_density': len(self.stars) / 200  # Normalize by max possible stars
+            }
+
         def draw(self):
             self.screen.fill((0, 0, 0))
             for x, y, z in self.stars:
@@ -528,6 +639,16 @@ class VisualEngine:
             self.inverted = 1  # 1 for normal wave, -1 for inverted wave
             self.frequency_shift = 1
             self.color_shift = 0
+
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': (math.sin(self.color_shift) + 1) / 2,  # Normalize between 0 and 1
+                'zoom_level': 1,  # Default zoom level
+                'pan_x': 0,  # No panning in this class
+                'pan_y': 0,  # No panning in this class
+                'rotation_angle': self.frequency_shift,
+                'pattern_density': 1  # Default density
+            }
 
         def draw(self):
             # Background gradient
@@ -1084,6 +1205,14 @@ class VisualEngine:
         def __init__(self, screen):
             self.screen = screen
             self.reset_fractal()
+
+        def get_audio_parameters(self):
+            return {
+                "zoom_level": self.radius / (WIDTH // 2),  # Normalize to [0, 1]
+                "rotation_angle": self.rotation_angle,
+                "color_intensity": sum(self.line_color) / (3 * 255),  # Average color intensity normalized to [0, 1]
+                "pattern_density": self.num_symmetrical_lines / 24  # Normalize to [0, 1]
+            }
 
         def reset_fractal(self):
             self.center = (WIDTH // 2, HEIGHT // 2)
