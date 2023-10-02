@@ -1465,11 +1465,16 @@ class VisualEngine:
             self.center = (WIDTH // 2, HEIGHT // 2)
             self.segment_opacities = [random.randint(50, 150) for _ in range(self.num_segments)]
             self.opacity_changes = [random.choice([-1, 1]) for _ in range(self.num_segments)]
-            self.segment_widths = [random.randint(1, 5) for _ in range(self.num_segments)]
+
+            # Increase base width of segments
+            self.segment_widths = [random.randint(2, 8) for _ in range(self.num_segments)]
             self.width_changes = [random.choice([-1, 1]) for _ in range(self.num_segments)]
+
             self.start_points = [(self.center[0] + random.randint(-10, 10), self.center[1] + random.randint(-10, 10)) for _ in range(self.num_segments)]
             self.growth_rates = [random.choice([-2, 2]) for _ in range(self.num_segments)]
             self.segment_rotation_speeds = [random.uniform(-0.02, 0.02) for _ in range(self.num_segments)]
+
+            self.hue_shifts = [random.uniform(-0.005, 0.005) for _ in range(self.num_segments)]  # New attribute for dynamic hue shifts
 
         def get_audio_parameters(self):
             avg_length = sum(self.segment_lengths) / len(self.segment_lengths)
@@ -1486,7 +1491,7 @@ class VisualEngine:
         def draw(self):
             # Overlay a semi-transparent black rectangle for fading effect
             overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 25))  # 25 is the alpha value, adjust for desired fade speed
+            overlay.fill((0, 0, 0, 25))
             self.screen.blit(overlay, (0, 0))
 
             for i in range(self.num_segments):
@@ -1494,32 +1499,50 @@ class VisualEngine:
                 modulation = random.uniform(0.9, 1.1)
                 end_x = self.start_points[i][0] + self.segment_lengths[i] * np.cos(angle) * modulation
                 end_y = self.start_points[i][1] + self.segment_lengths[i] * np.sin(angle) * modulation
-                control_point = ((self.start_points[i][0] + end_x) / 2, (self.start_points[i][1] + end_y) / 2)
+
+                # Dynamic Control Points for Bezier curve
+                control_dx, control_dy = random.randint(-10, 10), random.randint(-10, 10)
+                control_point = ((self.start_points[i][0] + end_x) / 2 + control_dx, (self.start_points[i][1] + end_y) / 2 + control_dy)
+
                 segment_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
                 gradient_color = (self.segment_colors[i][0] // 2, self.segment_colors[i][1] // 2, self.segment_colors[i][2] // 2)
+
+                # Drawing the segments with Bezier curve
                 pygame.draw.aalines(segment_surface, (*gradient_color, self.segment_opacities[i] // 2), False, [self.start_points[i], control_point], self.segment_widths[i])
                 pygame.draw.aalines(segment_surface, (*self.segment_colors[i], self.segment_opacities[i]), False, [control_point, (end_x, end_y)], self.segment_widths[i])
+
+                # Shadow or Glow effect
+                shadow_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                shadow_color = (50, 50, 50, self.segment_opacities[i] // 3)
+                pygame.draw.aalines(shadow_surface, shadow_color, False, [self.start_points[i], control_point], self.segment_widths[i] + 2)
+                pygame.draw.aalines(shadow_surface, shadow_color, False, [control_point, (end_x, end_y)], self.segment_widths[i] + 2)
+                self.screen.blit(shadow_surface, (0, 0))
+
                 self.screen.blit(segment_surface, (0, 0))
 
         def update(self):
             self.rotation_angle += 0.02
             for i in range(self.num_segments):
-                self.segment_opacities[i] += self.opacity_changes[i]
+                self.segment_opacities[i] += self.opacity_changes[i] * random.uniform(0.5, 1.5)  # Dynamic opacity change
                 self.segment_lengths[i] += self.growth_rates[i]
                 if self.segment_lengths[i] > 300 or self.segment_lengths[i] < 30:
                     self.growth_rates[i] = -self.growth_rates[i]
                 hue, sat, val = colorsys.rgb_to_hsv(self.segment_colors[i][0]/255, self.segment_colors[i][1]/255, self.segment_colors[i][2]/255)
-                hue = (hue + 0.001) % 1.0
+                hue = (hue + self.hue_shifts[i]) % 1.0  # Use dynamic hue shifts
                 new_color = colorsys.hsv_to_rgb(hue, sat, val)
                 self.segment_colors[i] = (int(new_color[0]*255), int(new_color[1]*255), int(new_color[2]*255))
                 self.segment_opacities[i] += self.opacity_changes[i]
                 if self.segment_opacities[i] > 150 or self.segment_opacities[i] < 50:
                     self.opacity_changes[i] = -self.opacity_changes[i]
                 self.segment_widths[i] += self.width_changes[i]
-                if self.segment_widths[i] > 5 or self.segment_widths[i] < 1:
+                if self.segment_widths[i] > 8 or self.segment_widths[i] < 2:
                     self.width_changes[i] = -self.width_changes[i]
                 self.rotation_angle += self.segment_rotation_speeds[i]
             self.rotation_angle += self.global_rotation_speed
 
         def valmorphanize(self):
+            # Dynamic Segment Count
+            change_segments = random.choice([True, False])
+            if change_segments:
+                self.num_segments = random.randint(6, 12)
             self.initialize_attributes()
