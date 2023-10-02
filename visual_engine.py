@@ -695,6 +695,17 @@ class VisualEngine:
             self.bird_angles = [random.uniform(0, 2 * math.pi) for _ in range(10)]
             self.bird_speeds = [random.uniform(0.01, 0.03) for _ in range(10)]
 
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': 1,  # Default color intensity
+                'zoom_level': self.speed,
+                'pan_x': self.direction,
+                'pan_y': 0,  # No vertical panning in this class
+                'rotation_angle': self.angle,
+                'pattern_density': self.arms / 300  # Normalize by max possible arms
+            }
+
+
         def draw_bird_silhouette(self, x, y, angle):
             # Transformations for rotation
             s, c = math.sin(angle), math.cos(angle)
@@ -742,6 +753,18 @@ class VisualEngine:
         def __init__(self, screen):
             self.screen = screen
             self.balls = [(random.randint(50, WIDTH - 50), random.randint(50, HEIGHT - 50), random.uniform(-4, 4), random.uniform(-4, 4), random.randint(10, 30), (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), 1, random.choice([-1, 1])) for _ in range(20)]
+
+        def get_audio_parameters(self):
+            avg_speed = sum([speed for _, _, speed, _, _, _, _, _ in self.balls]) / len(self.balls)
+            avg_color_intensity = sum([sum(color) for _, _, _, _, _, color, _, _ in self.balls]) / (3 * len(self.balls))
+            return {
+                'color_intensity': avg_color_intensity / 255,  # Normalize to [0, 1]
+                'zoom_level': avg_speed / 5,  # Normalize by max possible speed
+                'pan_x': 0,  # No horizontal panning in this class
+                'pan_y': 0,  # No vertical panning in this class
+                'rotation_angle': 0,  # No rotation in this class
+                'pattern_density': len(self.balls) / 50  # Normalize by max possible balls
+            }
 
         def draw(self):
             self.screen.fill((0, 0, 0))
@@ -794,6 +817,16 @@ class VisualEngine:
             self.direction = 1  # 1 for vertical, -1 for horizontal
             self.thickness = 2
             self.rotation_angle = 0
+
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': sum(self.color) / (3 * 255),  # Normalize to [0, 1]
+                'zoom_level': self.amplitude / 20,  # Normalize by max possible amplitude
+                'pan_x': 0,  # No horizontal panning in this class
+                'pan_y': 0,  # No vertical panning in this class
+                'rotation_angle': self.frequency,
+                'pattern_density': 1 / self.spacing  # Inverse of spacing for density
+            }
 
         def get_color(self, offset):
             """Generate a color based on the offset."""
@@ -863,6 +896,16 @@ class VisualEngine:
             self.bg_pulse = 0
             self.grid_size = 40
             self.grid_color_shift = 0
+
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': sum(self.color) / 3,  # Average RGB values
+                'zoom_level': self.base_amplitude / 100,  # Normalize amplitude to [0, 1]
+                'pan_x': self.x / self.width,  # Normalize x position
+                'pan_y': (self.height // 2 + self.y_offset) / self.height,  # Normalize y position
+                'rotation_angle': self.vertical_shift / self.max_vertical_shift * 360,  # Convert vertical shift to angle
+                'pattern_density': len(self.points) / self.width  # Normalize number of points
+            }
 
         def update(self):
             self.x += self.speed
@@ -950,7 +993,15 @@ class VisualEngine:
             self.moon_speed = 0.5
             self.moon_phase = np.random.choice(['full', 'crescent', 'half', 'gibbous'])
 
-
+        def get_audio_parameters(self):
+            return {
+                'color_intensity': sum(self.color) / 3,  # Average RGB values
+                'zoom_level': len(self.buildings) / self.width,  # Normalize number of buildings
+                'pan_x': self.brush_x / self.width,  # Normalize brush x position
+                'pan_y': self.horizon / self.height,  # Normalize horizon position
+                'rotation_angle': (self.moon_x + self.moon_y) / (self.width + self.height) * 360,  # Convert moon position to angle
+                'pattern_density': len(self.stars) / (self.width * self.horizon)  # Normalize number of stars
+            }
 
         def generate_cloud(self):
             x = np.random.randint(-100, self.width + 100)
@@ -1082,6 +1133,14 @@ class VisualEngine:
             self.fade_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
             self.fade_surface.fill((0, 0, 0, 10))
 
+        def get_audio_parameters(self):
+            return {
+                "zoom_level": self.zoom,
+                "rotation_angle": sum(self.deltas) / len(self.deltas),
+                "color_intensity": sum([color[0] for color in self.colors]) / len(self.colors),
+                "pattern_density": self.num_lines / 10
+            }
+
         def draw(self):
             self.screen.fill(self.bg_color)
             for i in range(self.num_lines):
@@ -1150,6 +1209,14 @@ class VisualEngine:
                 (255, 255, 0),  # Yellow
                 (0, 255, 255),  # Cyan
             ]
+
+        def get_audio_parameters(self):
+            return {
+                "zoom_level": self.flowfield_resolution / 100,
+                "rotation_angle": 0,  # There's no clear rotation in this class
+                "color_intensity": sum([color[0] for color in self.color_palette]) / len(self.color_palette),
+                "pattern_density": len(self.particles) / 500
+            }
 
         def draw(self):
             # Fade effect
@@ -1292,6 +1359,14 @@ class VisualEngine:
             self.trees = []
             self.particles = []
             self.initialize_forest()
+
+        def get_audio_parameters(self):
+            return {
+                "zoom_level": sum([tree[2] for tree in self.trees]) / len(self.trees) / 150,  # Normalized average tree height
+                "rotation_angle": 0,  # There's no clear rotation in this class
+                "color_intensity": self.tree_base_color[1] / 255,  # Green intensity of the tree base color
+                "pattern_density": len(self.particles) / 100  # Normalized particle count
+            }
 
         def initialize_forest(self):
             self.trees.clear()
