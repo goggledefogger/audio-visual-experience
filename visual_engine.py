@@ -1569,7 +1569,7 @@ class VisualEngine:
             self.max_brush_radius = 20
             self.brush_radius = 10
             self.timer = 0
-            self.pattern = random.choice(["spiral", "star", "wave", "heart", "city_skyline"])
+            self.pattern = self.choose_random_pattern()
             self.pattern_state = 0  # To keep track of the state within a pattern
             self.hue = random.random()  # Random starting hue
             self.saturation = 1
@@ -1587,6 +1587,9 @@ class VisualEngine:
             # Direction multipliers for knobs
             self.left_knob_direction = 1
             self.right_knob_direction = 1
+
+        def choose_random_pattern(self):
+            return random.choice(["spiral", "star", "wave", "heart", "city_skyline", "zigzag", "spiral_out", "circle"])
 
         def get_audio_parameters(self):
             return {
@@ -1673,12 +1676,18 @@ class VisualEngine:
                 self.heart_pattern()
             elif self.pattern == "city_skyline":
                 self.city_skyline_pattern()
+            elif self.pattern == "zigzag":
+                self.zigzag_pattern()
+            elif self.pattern == "circle":
+                self.circle_pattern()
+            elif self.pattern == "spiral_out":
+                self.spiral_out_pattern()
 
             # Switch to a new pattern after a certain time
-            if self.timer > 180:
+            if self.timer > 20:
                 self.timer = 0
                 self.pattern_state = 0
-                self.pattern = random.choice(["spiral", "star", "wave", "heart", "city_skyline"])
+                self.pattern = self.choose_random_pattern()
 
             self.previous_point = self.current_point.copy()  # Update previous_point after drawing
 
@@ -1736,20 +1745,32 @@ class VisualEngine:
                 self.timer = 0
 
         def star_pattern(self):
+            # Define a step size for the star pattern
+            star_step = self.step_size / 15
             if self.pattern_state == 0:
-                if self.timer <= 30:
-                    self.right_knob_angle += self.right_knob_direction * self.angle_increment
-                    self.current_point[0] += self.right_knob_direction * self.step_size / 60
+                if self.timer <= 15:
+                    self.current_point[0] += star_step
                 else:
                     self.timer = 0
                     self.pattern_state = 1
             elif self.pattern_state == 1:
-                if self.timer <= 30:
-                    self.left_knob_angle += self.left_knob_direction * self.angle_increment
-                    self.current_point[1] -= self.left_knob_direction * self.step_size / 60
+                if self.timer <= 15:
+                    self.current_point[1] += star_step
                 else:
                     self.timer = 0
-                    self.pattern_state = 0
+                    self.pattern_state = 2
+            elif self.pattern_state == 2:
+                if self.timer <= 15:
+                    self.current_point[0] -= star_step
+                else:
+                    self.timer = 0
+                    self.pattern_state = 3
+            elif self.pattern_state == 3:
+                if self.timer <= 15:
+                    self.current_point[1] -= star_step
+                else:
+                    self.timer = 0
+                    self.pattern_state = 0  # Reset to the beginning
 
         def wave_pattern(self):
             if self.timer <= 60:
@@ -1763,10 +1784,17 @@ class VisualEngine:
         def heart_pattern(self):
             t = self.timer / 60.0
             if t <= 2 * math.pi:
+                # Parametric equations for the heart shape
                 x = 16 * math.sin(t)**3
                 y = 13 * math.cos(t) - 5 * math.cos(2*t) - 2 * math.cos(3*t) - math.cos(4*t)
-                self.current_point[0] += x
-                self.current_point[1] -= y
+
+                # Scaling factor to ensure the heart fits within a bounding box
+                scale_factor = min(WIDTH, HEIGHT) / 40.0  # Adjust the divisor (40.0 here) to change the size of the heart
+
+                # Translate and scale the heart to fit within the screen
+                self.current_point[0] = WIDTH // 2 + x * scale_factor
+                self.current_point[1] = HEIGHT // 2 - y * scale_factor  # Subtracting to invert the heart
+
 
         def circle_pattern(self):
             if self.timer <= 60:
@@ -1792,12 +1820,16 @@ class VisualEngine:
                     self.pattern_state = 0
 
         def spiral_out_pattern(self):
-            angle = self.timer * math.pi / 60
-            self.right_knob_angle += self.right_knob_direction * self.angle_increment * math.cos(angle)
-            self.current_point[0] += self.right_knob_direction * self.step_size / 60 * math.cos(angle)
-            self.left_knob_angle += self.left_knob_direction * self.angle_increment * math.sin(angle)
-            self.current_point[1] += self.left_knob_direction * self.step_size / 60 * math.sin(angle)
-
+            # Define a maximum radius for the spiral to ensure it doesn't go off the screen
+            max_radius = min(WIDTH, HEIGHT) / 3
+            angle_increment = 2 * math.pi / 120
+            angle = self.timer * angle_increment
+            radius = self.timer * self.step_size / 120
+            if radius <= max_radius:
+                self.current_point[0] = WIDTH // 2 + radius * math.cos(angle)
+                self.current_point[1] = HEIGHT // 2 + radius * math.sin(angle)
+            else:
+                self.timer = 0  # Reset the timer when the maximum radius is reached
 
         def fade_transition(self):
             fade_surface = pygame.Surface((WIDTH, HEIGHT))
