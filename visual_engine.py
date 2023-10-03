@@ -1554,8 +1554,8 @@ class VisualEngine:
 
         def reset_pattern(self):
             self.screen.fill((255, 255, 255))
-            self.left_knob = (50, 550)
-            self.right_knob = (750, 550)
+            self.left_knob = (50, 150)  # Moved knobs higher up
+            self.right_knob = (750, 150)
             self.current_point = [WIDTH // 2, HEIGHT // 2]
             self.previous_point = self.current_point.copy()
             self.line_color = (0, 0, 0)
@@ -1564,10 +1564,29 @@ class VisualEngine:
             self.left_knob_angle = 0
             self.right_knob_angle = 0
             self.step_size = WIDTH / 10
+            self.brush_growth_rate = 0.1  # Controls how fast the brush grows or shrinks
+            self.min_brush_radius = 5
+            self.max_brush_radius = 20
             self.brush_radius = 10
             self.timer = 0
-            self.pattern = random.choice(["spiral", "star", "wave", "heart"])
+            self.pattern = random.choice(["spiral", "star", "wave", "heart", "city_skyline"])
             self.pattern_state = 0  # To keep track of the state within a pattern
+            self.hue = random.random()  # Random starting hue
+            self.saturation = 1
+            self.value = 1
+            self.brush_shape = random.choice(["horizontal", "vertical", "circle", "diagonal"])
+
+            # Draw the gradient background once during initialization
+            top_color = (255, 200, 200)
+            bottom_color = (200, 200, 255)
+            for y in range(HEIGHT):
+                blend = y / HEIGHT
+                color = [int(top_color[i] * (1 - blend) + bottom_color[i] * blend) for i in range(3)]
+                pygame.draw.line(self.screen, color, (0, y), (WIDTH, y))
+
+            # Direction multipliers for knobs
+            self.left_knob_direction = 1
+            self.right_knob_direction = 1
 
         def get_audio_parameters(self):
             return {
@@ -1576,6 +1595,17 @@ class VisualEngine:
                 "color_intensity": sum(self.line_color) / (3 * 255),  # Average color intensity normalized to [0, 1]
                 "pattern_density": self.brush_radius / 20  # Normalize to [0, 1]
             }
+
+        def draw_pixelated_line(self, start, end, color, step=10):
+            """Draw a pixelated line."""
+            dx = end[0] - start[0]
+            dy = end[1] - start[1]
+            distance = int(math.sqrt(dx**2 + dy**2))
+            for i in range(0, distance, step):
+                x = start[0] + dx * i / distance
+                y = start[1] + dy * i / distance
+                pygame.draw.circle(self.screen, color, (int(x), int(y)), self.brush_radius)
+
 
         def draw_pixelated_circle(self, center, radius, color):
             center = (int(center[0]), int(center[1]))
@@ -1588,20 +1618,50 @@ class VisualEngine:
             # Draw knobs
             pygame.draw.circle(self.screen, (200, 200, 200), self.left_knob, self.knob_radius)
             pygame.draw.circle(self.screen, (200, 200, 200), self.right_knob, self.knob_radius)
+
+            # Draw the small circle indicating the rotation without leaving a trail
             pygame.draw.circle(self.screen, (0, 0, 0), (self.left_knob[0] + self.knob_radius * math.cos(self.left_knob_angle), self.left_knob[1] + self.knob_radius * math.sin(self.left_knob_angle)), 5)
             pygame.draw.circle(self.screen, (0, 0, 0), (self.right_knob[0] + self.knob_radius * math.cos(self.right_knob_angle), self.right_knob[1] + self.knob_radius * math.sin(self.right_knob_angle)), 5)
+
+            # Gradual brush width change
+            brush_growth = random.uniform(-self.brush_growth_rate, self.brush_growth_rate)
+            self.brush_radius += brush_growth
+            self.brush_radius = max(self.min_brush_radius, min(self.brush_radius, self.max_brush_radius))
+            int_brush_radius = int(self.brush_radius)
 
             # Convert coordinates and brush_radius to integers
             int_previous_point = (int(self.previous_point[0]), int(self.previous_point[1]))
             int_current_point = (int(self.current_point[0]), int(self.current_point[1]))
-            int_brush_radius = int(self.brush_radius)
+
+             # Draw based on brush shape
+            if self.brush_shape == "horizontal":
+                pygame.draw.line(self.screen, self.line_color, int_previous_point, int_current_point, int_brush_radius)
+            elif self.brush_shape == "vertical":
+                pygame.draw.line(self.screen, self.line_color, (int_previous_point[0], int_previous_point[1] - int_brush_radius), (int_current_point[0], int_current_point[1] + int_brush_radius), int_brush_radius)
+            elif self.brush_shape == "circle":
+                pygame.draw.circle(self.screen, self.line_color, int_current_point, int_brush_radius)
+            elif self.brush_shape == "diagonal":
+                offset = int_brush_radius * (1 if random.choice([True, False]) else -1)
+                pygame.draw.line(self.screen, self.line_color, (int_previous_point[0] - offset, int_previous_point[1] - offset), (int_current_point[0] + offset, int_current_point[1] + offset), int_brush_radius)
+
 
             # Draw the line from previous_point to current_point
             pygame.draw.line(self.screen, self.line_color, int_previous_point, int_current_point, int_brush_radius)
 
+
         def update(self):
+            # Apply boundary reflection logic before pattern logic
+            self.boundary_reflection()
+
             self.timer += 1
-            self.line_color = ((self.line_color[0] + 1) % 255, (self.line_color[1] + 2) % 255, (self.line_color[2] + 3) % 255)  # Dynamic color change
+
+            # Dynamic brush size
+            self.brush_radius = 5 + 5 * math.sin(self.timer * math.pi / 60)
+
+            # Gradual color change for smoother transitions
+            self.hue += 0.001  # Increment hue for smooth transition
+            self.hue %= 1  # Keep hue in [0, 1] range
+            self.line_color = tuple(int(c * 255) for c in colorsys.hsv_to_rgb(self.hue, self.saturation, self.value))
 
             if self.pattern == "spiral":
                 self.spiral_pattern()
@@ -1622,74 +1682,81 @@ class VisualEngine:
 
             self.previous_point = self.current_point.copy()  # Update previous_point after drawing
 
-            # Boundary conditions
+            # Switch brush shape after a certain time
+            if self.timer % 90 == 0:
+                self.brush_shape = random.choice(["horizontal", "vertical", "circle", "diagonal"])
+
+
+        def boundary_reflection(self):
+            # Check for horizontal boundaries
             if self.current_point[0] < 0 or self.current_point[0] > WIDTH:
-                self.right_knob_angle = -self.right_knob_angle
+                self.right_knob_direction *= -1  # Reverse direction
+
+            # Check for vertical boundaries
             if self.current_point[1] < 0 or self.current_point[1] > HEIGHT:
-                self.left_knob_angle = -self.left_knob_angle
+                self.left_knob_direction *= -1  # Reverse direction
 
         def city_skyline_pattern(self):
-            direction = random.choice([1, -1])  # Randomly choose clockwise or counterclockwise
             if self.pattern_state == 0:
                 if self.timer <= 30:
-                    self.right_knob_angle += direction * self.angle_increment
-                    self.current_point[0] += direction * self.step_size / 60
+                    self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                    self.current_point[0] += self.right_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 1
             elif self.pattern_state == 1:
                 if self.timer <= random.randint(10, 50):  # Random building height
-                    self.left_knob_angle += direction * self.angle_increment
-                    self.current_point[1] -= direction * self.step_size / 60
+                    self.left_knob_angle += self.left_knob_direction * self.angle_increment
+                    self.current_point[1] -= self.left_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 2
             elif self.pattern_state == 2:
                 if self.timer <= random.randint(5, 15):  # Random building width
-                    self.right_knob_angle += direction * self.angle_increment
-                    self.current_point[0] += direction * self.step_size / 60
+                    self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                    self.current_point[0] += self.right_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 3
             elif self.pattern_state == 3:
                 if self.timer <= random.randint(10, 50):  # Random building height (going down)
-                    self.left_knob_angle -= direction * self.angle_increment
-                    self.current_point[1] += direction * self.step_size / 60
+                    self.left_knob_angle -= self.left_knob_direction * self.angle_increment
+                    self.current_point[1] += self.left_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 0
 
         def spiral_pattern(self):
             if self.timer <= 60:
-                self.right_knob_angle += self.angle_increment
-                self.current_point[0] += self.step_size / 120  # Slow down the horizontal movement
-                self.left_knob_angle += self.angle_increment / 2  # Slow down the vertical movement
-                self.current_point[1] += self.step_size / 240  # Slow down the vertical movement
+                self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                self.current_point[0] += self.right_knob_direction * self.step_size / 120  # Slow down the horizontal movement
+                self.left_knob_angle += self.left_knob_direction * self.angle_increment / 2  # Slow down the vertical movement
+                self.current_point[1] += self.left_knob_direction * self.step_size / 240  # Slow down the vertical movement
             else:
                 self.timer = 0
 
         def star_pattern(self):
             if self.pattern_state == 0:
                 if self.timer <= 30:
-                    self.right_knob_angle += self.angle_increment
-                    self.current_point[0] += self.step_size / 60
+                    self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                    self.current_point[0] += self.right_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 1
             elif self.pattern_state == 1:
                 if self.timer <= 30:
-                    self.left_knob_angle += self.angle_increment
-                    self.current_point[1] -= self.step_size / 60
+                    self.left_knob_angle += self.left_knob_direction * self.angle_increment
+                    self.current_point[1] -= self.left_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 0
 
         def wave_pattern(self):
             if self.timer <= 60:
-                self.right_knob_angle += self.angle_increment
-                self.current_point[0] += self.step_size / 60
+                self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                self.current_point[0] += self.right_knob_direction * self.step_size / 60
                 self.left_knob_angle = math.sin(self.timer * math.pi / 30) * self.angle_increment
-                self.current_point[1] += self.step_size / 60 * math.sin(self.timer * math.pi / 30)
+                self.current_point[1] += self.left_knob_direction * self.step_size / 60 * math.sin(self.timer * math.pi / 30)
             else:
                 self.timer = 0
 
@@ -1703,33 +1770,34 @@ class VisualEngine:
 
         def circle_pattern(self):
             if self.timer <= 60:
-                self.right_knob_angle += self.angle_increment
-                self.current_point[0] += self.step_size / 60 * math.cos(self.timer * math.pi / 30)
-                self.left_knob_angle += self.angle_increment
-                self.current_point[1] += self.step_size / 60 * math.sin(self.timer * math.pi / 30)
+                self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                self.current_point[0] += self.right_knob_direction * self.step_size / 60 * math.cos(self.timer * math.pi / 30)
+                self.left_knob_angle += self.left_knob_direction * self.angle_increment
+                self.current_point[1] += self.left_knob_direction * self.step_size / 60 * math.sin(self.timer * math.pi / 30)
 
         def zigzag_pattern(self):
             if self.pattern_state == 0:
                 if self.timer <= 30:
-                    self.right_knob_angle += self.angle_increment
-                    self.current_point[0] += self.step_size / 60
+                    self.right_knob_angle += self.right_knob_direction * self.angle_increment
+                    self.current_point[0] += self.right_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 1
             elif self.pattern_state == 1:
                 if self.timer <= 30:
-                    self.left_knob_angle += self.angle_increment
-                    self.current_point[1] += self.step_size / 60
+                    self.left_knob_angle += self.left_knob_direction * self.angle_increment
+                    self.current_point[1] += self.left_knob_direction * self.step_size / 60
                 else:
                     self.timer = 0
                     self.pattern_state = 0
 
         def spiral_out_pattern(self):
             angle = self.timer * math.pi / 60
-            self.right_knob_angle += self.angle_increment * math.cos(angle)
-            self.current_point[0] += self.step_size / 60 * math.cos(angle)
-            self.left_knob_angle += self.angle_increment * math.sin(angle)
-            self.current_point[1] += self.step_size / 60 * math.sin(angle)
+            self.right_knob_angle += self.right_knob_direction * self.angle_increment * math.cos(angle)
+            self.current_point[0] += self.right_knob_direction * self.step_size / 60 * math.cos(angle)
+            self.left_knob_angle += self.left_knob_direction * self.angle_increment * math.sin(angle)
+            self.current_point[1] += self.left_knob_direction * self.step_size / 60 * math.sin(angle)
+
 
         def fade_transition(self):
             fade_surface = pygame.Surface((WIDTH, HEIGHT))
